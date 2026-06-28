@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Quran Teacher MVP
 
-## Getting Started
+A lightweight Next.js/Supabase app for one Quran teacher to manage students,
+schedule lessons, run a live mistake counter, and give students a passwordless
+read-only lesson portal.
 
-First, run the development server:
+## Local Setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create `.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+```
+
+Run the Supabase migrations in `supabase/migrations/` against your project in
+filename order. Then create the teacher in Supabase Auth and insert one matching
+row into `public.settings`:
+
+```sql
+insert into public.settings (teacher_id, max_mistakes_per_session)
+values ('TEACHER_AUTH_USER_ID', 5);
+```
+
+Start the app:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Supabase Notes
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Students use `/student/login` and Supabase magic links. On first login, the app
+claims the matching `public.students` row by email and links it to the student's
+Auth user id. If no row matches, the app signs them out and shows a clear error.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+No notification delivery is implemented in this MVP. `notification_status` is
+reserved for future WhatsApp/SMS work.
 
-## Learn More
+## Deploy
 
-To learn more about Next.js, take a look at the following resources:
+Deploy to Vercel and set the same environment variables there, with
+`NEXT_PUBLIC_SITE_URL` set to the Vercel URL so magic links return to production.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use Safari's Share Sheet to add the site to an iPhone home screen and verify it
+opens standalone with the Quran icon.
