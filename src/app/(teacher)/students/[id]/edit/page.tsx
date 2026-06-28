@@ -58,6 +58,14 @@ export default async function EditStudentPage({
               required
             />
           </Field>
+          <Field label="Set new password">
+            <input
+              className={fieldClassName}
+              name="password"
+              type="text"
+              placeholder="Leave blank to keep unchanged"
+            />
+          </Field>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Phone">
               <input

@@ -11,7 +11,7 @@ import type {
 } from '@/lib/database.types';
 import { requireTeacher } from '@/lib/auth';
 import { getSurah } from '@/lib/quran';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { nullableText, positiveInteger, requiredText } from '@/lib/strings';
 
 function normalizeEmail(email: string): string {
@@ -227,6 +227,35 @@ export async function sendStudentMagicLink(formData: FormData): Promise<void> {
   redirect('/student/login?sent=1');
 }
 
+/** Signs a student in with email and password. */
+export async function signInStudentWithPassword(
+  formData: FormData,
+): Promise<void> {
+  const supabase = await createClient();
+  const email = normalizeEmail(requiredText(formData, 'email'));
+  const password = requiredText(formData, 'password');
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) {
+    redirect('/student/login?error=invalid_credentials');
+  }
+
+  // Link user_id to the student row if not already linked.
+  if (data.user) {
+    await supabase
+      .from('students')
+      .update({ user_id: data.user.id })
+      .is('user_id', null)
+      .eq('email', email);
+  }
+
+  redirect('/student');
+}
+
 /** Signs the current user out. */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
@@ -238,14 +267,41 @@ export async function signOut(): Promise<void> {
 export async function createStudent(formData: FormData): Promise<void> {
   const { user } = await requireTeacher();
   const supabase = await createClient();
+  const email = normalizeEmail(requiredText(formData, 'email'));
+  const password = nullableText(formData.get('password'));
   const startDate = requiredText(formData, 'startDate');
+
+  // Create an auth user for the student if a password was provided.
+  let studentUserId: string | null = null;
+  if (password) {
+    const admin = createAdminClient();
+    const { data: authData, error: authError } =
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+    if (authError && !authError.message.includes('already been registered')) {
+      throw new Error(authError.message);
+    }
+    if (authData?.user) {
+      studentUserId = authData.user.id;
+    } else {
+      // User already exists — look up their id.
+      const { data: users } = await admin.auth.admin.listUsers();
+      const existing = users?.users.find((u) => u.email === email);
+      if (existing) studentUserId = existing.id;
+    }
+  }
+
   const { error } = await supabase.from('students').insert({
-    email: normalizeEmail(requiredText(formData, 'email')),
+    email,
     name: requiredText(formData, 'name'),
     notes: nullableText(formData.get('notes')),
     phone: nullableText(formData.get('phone')),
     start_date: startDate,
     teacher_id: user.id,
+    ...(studentUserId ? { user_id: studentUserId } : {}),
   });
 
   if (error) {
@@ -262,10 +318,29 @@ export async function updateStudent(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const studentId = requiredText(formData, 'studentId');
   const status = requiredText(formData, 'status') as StudentStatus;
+  const email = normalizeEmail(requiredText(formData, 'email'));
+  const password = nullableText(formData.get('password'));
+
+  // Update or create auth user password if provided.
+  if (password) {
+    const admin = createAdminClient();
+    const { data: users } = await admin.auth.admin.listUsers();
+    const existing = users?.users.find((u) => u.email === email);
+    if (existing) {
+      await admin.auth.admin.updateUserById(existing.id, { password });
+    } else {
+      await admin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+      });
+    }
+  }
+
   const { error } = await supabase
     .from('students')
     .update({
-      email: normalizeEmail(requiredText(formData, 'email')),
+      email,
       name: requiredText(formData, 'name'),
       notes: nullableText(formData.get('notes')),
       phone: nullableText(formData.get('phone')),

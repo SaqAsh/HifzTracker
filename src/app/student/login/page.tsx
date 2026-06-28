@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { sendStudentMagicLink } from '@/app/actions';
+import { signInStudentWithPassword } from '@/app/actions';
 import { AppLogo } from '@/components/app-logo';
 import {
   Field,
@@ -11,14 +11,12 @@ type StudentLoginPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
-/** Passwordless student login page. */
+/** Student login page. */
 export default async function StudentLoginPage({
   searchParams,
 }: StudentLoginPageProps): Promise<React.JSX.Element> {
   const params = await searchParams;
-  const sent = params?.sent === '1';
-  const notOnFile = params?.error === 'not_on_file';
-  const sendFailed = params?.error === 'send_failed';
+  const invalidCreds = params?.error === 'invalid_credentials';
 
   return (
     <main className="safe-screen grid place-items-center px-4 py-8">
@@ -35,24 +33,14 @@ export default async function StudentLoginPage({
           </div>
         </div>
 
-        {sent ? (
-          <p className="mb-4 rounded-2xl bg-sage px-4 py-3 text-sm font-semibold text-ink">
-            Magic link sent. Open it on this device to continue.
-          </p>
-        ) : null}
-        {notOnFile ? (
+        {invalidCreds ? (
           <p className="mb-4 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-cream">
-            We do not have that email on file. Ask your teacher to add it.
-          </p>
-        ) : null}
-        {sendFailed ? (
-          <p className="mb-4 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-cream">
-            Could not send a magic link. Try again.
+            Invalid email or password. Try again.
           </p>
         ) : null}
 
-        <form action={sendStudentMagicLink} className="grid gap-4">
-          <Field label="Email on file">
+        <form action={signInStudentWithPassword} className="grid gap-4">
+          <Field label="Email">
             <input
               className={fieldClassName}
               name="email"
@@ -61,8 +49,17 @@ export default async function StudentLoginPage({
               required
             />
           </Field>
+          <Field label="Password">
+            <input
+              className={fieldClassName}
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </Field>
           <button className={primaryButtonClassName} type="submit">
-            Send magic link
+            Sign in
           </button>
         </form>
 

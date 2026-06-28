@@ -50,6 +50,14 @@ export function AddStudentDialog(): React.JSX.Element {
                 required
               />
             </Field>
+            <Field label="Password">
+              <input
+                className={fieldClassName}
+                name="password"
+                type="text"
+                placeholder="Optional — for student login"
+              />
+            </Field>
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label="Phone">
                 <input className={fieldClassName} name="phone" type="tel" />

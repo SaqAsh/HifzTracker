@@ -28,3 +28,13 @@ export async function createClient(): Promise<SupabaseClient<Database>> {
     },
   );
 }
+
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+/** Creates a Supabase admin client using the service role key (no RLS). */
+export function createAdminClient(): SupabaseClient<Database> {
+  return createSupabaseClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
+  );
+}

@@ -100,7 +100,7 @@ export default async function StudentDetailPage({
         <form action={startAdHocSession} className="mt-4">
           <input type="hidden" name="studentId" value={student.id} />
           <button className={primaryButtonClassName} type="submit">
-            Start Ad Hoc Session
+            Start Session
           </button>
         </form>
       </section>
