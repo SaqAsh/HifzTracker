@@ -15,7 +15,6 @@ export default function ErrorBoundary({
   reset,
 }: ErrorBoundaryProps): React.JSX.Element {
   useEffect(() => {
-    // eslint-disable-next-line no-console -- surface unexpected errors for debugging
     console.error(error);
   }, [error]);
 
