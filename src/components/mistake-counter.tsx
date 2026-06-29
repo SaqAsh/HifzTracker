@@ -1,8 +1,7 @@
 'use client';
 
 import { clsx } from 'clsx';
-import { startTransition, useRef, useState } from 'react';
-import { endSession, setMistakeCount } from '@/app/actions';
+import { useMistakeCounter } from '@/hooks/use-mistake-counter';
 
 type MistakeCounterProps = {
   initialCount: number;
@@ -18,33 +17,11 @@ export function MistakeCounter({
   sessionId,
   studentName,
 }: MistakeCounterProps): React.JSX.Element {
-  const [count, setCount] = useState(initialCount);
-  const [isEnding, setIsEnding] = useState(false);
-  const queue = useRef<Promise<void>>(Promise.resolve());
-  const atMax = count >= maxMistakes;
-
-  function persist(nextCount: number): void {
-    queue.current = queue.current
-      .then(async () => {
-        await setMistakeCount(sessionId, nextCount);
-      })
-      .catch(() => undefined);
-  }
-
-  function addMistake(): void {
-    const nextCount = count + 1;
-    setCount(nextCount);
-    persist(nextCount);
-  }
-
-  function finish(): void {
-    setIsEnding(true);
-    startTransition(() => {
-      void queue.current.finally(() => {
-        void endSession(sessionId, count);
-      });
-    });
-  }
+  const { addMistake, atMax, count, finish, isEnding } = useMistakeCounter(
+    sessionId,
+    initialCount,
+    maxMistakes,
+  );
 
   return (
     <section className="flex flex-1 flex-col gap-6">
@@ -56,11 +33,11 @@ export function MistakeCounter({
           {studentName}
         </h1>
         <div
+          aria-live="polite"
           className={clsx(
             'mt-6 font-serif text-7xl font-semibold leading-none transition-colors',
             atMax ? 'text-maroon' : 'text-teal',
           )}
-          aria-live="polite"
         >
           {count} / {maxMistakes}
         </div>
@@ -72,12 +49,12 @@ export function MistakeCounter({
       </div>
 
       <button
-        type="button"
-        onClick={addMistake}
         className={clsx(
           'relative grid min-h-[18rem] flex-1 place-items-center overflow-hidden rounded-[2.5rem] px-8 font-serif text-4xl font-semibold text-cream shadow-xl transition active:scale-[0.99]',
           atMax ? 'bg-maroon' : 'bg-teal',
         )}
+        onClick={addMistake}
+        type="button"
       >
         <span className="absolute inset-8 rounded-full border border-cream/25" />
         <span className="absolute inset-16 rounded-full border border-sand/40" />
@@ -85,10 +62,10 @@ export function MistakeCounter({
       </button>
 
       <button
-        type="button"
-        onClick={finish}
-        disabled={isEnding}
         className="tap-target rounded-2xl border border-teal/20 bg-cream px-5 py-4 text-center text-base font-bold text-teal transition hover:bg-teal/10 disabled:opacity-60"
+        disabled={isEnding}
+        onClick={finish}
+        type="button"
       >
         {isEnding ? 'Ending...' : 'End Session'}
       </button>

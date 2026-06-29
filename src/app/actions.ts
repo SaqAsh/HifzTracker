@@ -1,198 +1,61 @@
 'use server';
 
-import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import type {
-  AssignmentType,
-  LessonStatus,
-  RevisionMode,
-  StudentStatus,
-} from '@/lib/database.types';
 import { requireTeacher } from '@/lib/auth';
-import { getSurah } from '@/lib/quran';
-import { createClient, createAdminClient } from '@/lib/supabase/server';
-import { nullableText, positiveInteger, requiredText } from '@/lib/strings';
+import { siteUrl } from '@/lib/env';
+import {
+  completeLesson,
+  getLesson,
+  insertLesson,
+  setLessonStatus,
+} from '@/lib/data/lessons';
+import {
+  endSession as endSessionRow,
+  insertSession,
+  updateMistakeCount,
+} from '@/lib/data/sessions';
+import { updateMaxMistakes } from '@/lib/data/settings';
+import {
+  archiveStudent as archiveStudentRow,
+  claimStudentByEmail,
+  insertStudent,
+  updateStudent as updateStudentRow,
+} from '@/lib/data/students';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
+import {
+  createStudentSchema,
+  credentialsSchema,
+  emailSchema,
+  lessonIdSchema,
+  lessonStatusSchema,
+  parseCreateLesson,
+  parseForm,
+  settingsSchema,
+  studentIdSchema,
+  updateStudentSchema,
+} from '@/lib/validation';
 
-function normalizeEmail(email: string): string {
-  return email.trim().toLowerCase();
+/** Accepts only same-site relative paths to prevent open redirects. */
+function isSafeReturnPath(value: FormDataEntryValue | null): value is string {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.startsWith('/\\')
+  );
 }
 
 function redirectBack(formData: FormData, fallback: string): never {
   const returnTo = formData.get('returnTo');
-  redirect(
-    typeof returnTo === 'string' && returnTo.length > 0 ? returnTo : fallback,
-  );
-}
-
-type LessonAssignmentPayload = {
-  assignment_type: AssignmentType;
-  lesson_ayah_from: null | number;
-  lesson_ayah_to: null | number;
-  lesson_surah_number: null | number;
-  revision_hizb_from: null | number;
-  revision_hizb_to: null | number;
-  revision_juz_from: null | number;
-  revision_juz_to: null | number;
-  revision_mode: null | RevisionMode;
-  revision_surah_from: null | number;
-  revision_surah_to: null | number;
-};
-
-function optionalInteger(
-  formData: FormData,
-  key: string,
-  min: number,
-  max: number,
-): null | number {
-  const rawValue = formData.get(key);
-  const text = typeof rawValue === 'string' ? rawValue.trim() : '';
-
-  if (text.length === 0) {
-    return null;
-  }
-
-  const value = Number(text);
-
-  if (!Number.isInteger(value) || value < min || value > max) {
-    throw new Error(`${key} must be between ${min} and ${max}`);
-  }
-
-  return value;
-}
-
-function requiredInteger(
-  formData: FormData,
-  key: string,
-  min: number,
-  max: number,
-): number {
-  const value = optionalInteger(formData, key, min, max);
-
-  if (!value) {
-    throw new Error(`Missing required field: ${key}`);
-  }
-
-  return value;
-}
-
-function validateRange(from: number, to: null | number, label: string): void {
-  if (to && from > to) {
-    throw new Error(`${label} start must be before the end`);
-  }
-}
-
-function parseAssignment(formData: FormData): LessonAssignmentPayload {
-  const assignmentType = requiredText(
-    formData,
-    'assignmentType',
-  ) as AssignmentType;
-
-  if (assignmentType === 'lesson') {
-    const lessonSurahNumber = requiredInteger(
-      formData,
-      'lessonSurahNumber',
-      1,
-      114,
-    );
-    const surah = getSurah(lessonSurahNumber);
-
-    if (!surah) {
-      throw new Error('Invalid surah');
-    }
-
-    const lessonAyahFrom = optionalInteger(
-      formData,
-      'lessonAyahFrom',
-      1,
-      surah.ayahCount,
-    );
-    const lessonAyahTo = optionalInteger(
-      formData,
-      'lessonAyahTo',
-      1,
-      surah.ayahCount,
-    );
-
-    if (lessonAyahFrom && lessonAyahTo) {
-      validateRange(lessonAyahFrom, lessonAyahTo, 'Ayah range');
-    }
-
-    return {
-      assignment_type: 'lesson',
-      lesson_ayah_from: lessonAyahFrom,
-      lesson_ayah_to: lessonAyahTo,
-      lesson_surah_number: lessonSurahNumber,
-      revision_hizb_from: null,
-      revision_hizb_to: null,
-      revision_juz_from: null,
-      revision_juz_to: null,
-      revision_mode: null,
-      revision_surah_from: null,
-      revision_surah_to: null,
-    };
-  }
-
-  const revisionMode = requiredText(formData, 'revisionMode') as RevisionMode;
-
-  if (revisionMode === 'juz') {
-    const from = requiredInteger(formData, 'revisionJuzFrom', 1, 30);
-    const to = optionalInteger(formData, 'revisionJuzTo', 1, 30);
-    validateRange(from, to, 'Juz range');
-
-    return revisionAssignment({
-      revision_juz_from: from,
-      revision_juz_to: to,
-      revision_mode: 'juz',
-    });
-  }
-
-  if (revisionMode === 'hizb') {
-    const from = requiredInteger(formData, 'revisionHizbFrom', 1, 60);
-    const to = optionalInteger(formData, 'revisionHizbTo', 1, 60);
-    validateRange(from, to, 'Hizb range');
-
-    return revisionAssignment({
-      revision_hizb_from: from,
-      revision_hizb_to: to,
-      revision_mode: 'hizb',
-    });
-  }
-
-  const from = requiredInteger(formData, 'revisionSurahFrom', 1, 114);
-  const to = optionalInteger(formData, 'revisionSurahTo', 1, 114);
-  validateRange(from, to, 'Surah range');
-
-  return revisionAssignment({
-    revision_mode: 'surah_range',
-    revision_surah_from: from,
-    revision_surah_to: to,
-  });
-}
-
-function revisionAssignment(
-  values: Partial<LessonAssignmentPayload> & { revision_mode: RevisionMode },
-): LessonAssignmentPayload {
-  return {
-    assignment_type: 'revision',
-    lesson_ayah_from: null,
-    lesson_ayah_to: null,
-    lesson_surah_number: null,
-    revision_hizb_from: values.revision_hizb_from ?? null,
-    revision_hizb_to: values.revision_hizb_to ?? null,
-    revision_juz_from: values.revision_juz_from ?? null,
-    revision_juz_to: values.revision_juz_to ?? null,
-    revision_mode: values.revision_mode,
-    revision_surah_from: values.revision_surah_from ?? null,
-    revision_surah_to: values.revision_surah_to ?? null,
-  };
+  redirect(isSafeReturnPath(returnTo) ? returnTo : fallback);
 }
 
 /** Signs in the teacher with email/password Supabase auth. */
 export async function signInTeacher(formData: FormData): Promise<void> {
+  const { email, password } = parseForm(formData, credentialsSchema);
   const supabase = await createClient();
-  const email = normalizeEmail(requiredText(formData, 'email'));
-  const password = requiredText(formData, 'password');
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -204,13 +67,10 @@ export async function signInTeacher(formData: FormData): Promise<void> {
 
 /** Sends a passwordless student magic link. */
 export async function sendStudentMagicLink(formData: FormData): Promise<void> {
+  const { email } = parseForm(formData, emailSchema);
   const supabase = await createClient();
-  const email = normalizeEmail(requiredText(formData, 'email'));
   const requestHeaders = await headers();
-  const origin =
-    requestHeaders.get('origin') ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    'http://localhost:3000';
+  const origin = requestHeaders.get('origin') ?? siteUrl();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -231,10 +91,8 @@ export async function sendStudentMagicLink(formData: FormData): Promise<void> {
 export async function signInStudentWithPassword(
   formData: FormData,
 ): Promise<void> {
+  const { email, password } = parseForm(formData, credentialsSchema);
   const supabase = await createClient();
-  const email = normalizeEmail(requiredText(formData, 'email'));
-  const password = requiredText(formData, 'password');
-
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -244,13 +102,8 @@ export async function signInStudentWithPassword(
     redirect('/student/login?error=invalid_credentials');
   }
 
-  // Link user_id to the student row if not already linked.
   if (data.user) {
-    await supabase
-      .from('students')
-      .update({ user_id: data.user.id })
-      .is('user_id', null)
-      .eq('email', email);
+    await claimStudentByEmail(supabase, email, data.user.id);
   }
 
   redirect('/student');
@@ -263,50 +116,75 @@ export async function signOut(): Promise<void> {
   redirect('/login');
 }
 
+const USERS_PER_PAGE = 1000;
+const MAX_USER_PAGES = 100;
+
+/** Finds an existing auth user id by email, paging through all users. */
+async function findAuthUserIdByEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  email: string,
+): Promise<null | string> {
+  for (let page = 1; page <= MAX_USER_PAGES; page += 1) {
+    const { data } = await admin.auth.admin.listUsers({
+      page,
+      perPage: USERS_PER_PAGE,
+    });
+    const users = data?.users ?? [];
+    const match = users.find((user) => user.email === email);
+
+    if (match) {
+      return match.id;
+    }
+
+    if (users.length < USERS_PER_PAGE) {
+      break;
+    }
+  }
+
+  return null;
+}
+
+/** Ensures an auth user exists for the email and returns its id when created. */
+async function ensureStudentAuthUser(
+  email: string,
+  password: string,
+): Promise<null | string> {
+  const admin = createAdminClient();
+  const { data: created, error } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    password,
+  });
+
+  if (created?.user) {
+    return created.user.id;
+  }
+
+  if (error && !error.message.includes('already been registered')) {
+    throw new Error(error.message);
+  }
+
+  return findAuthUserIdByEmail(admin, email);
+}
+
 /** Creates a student owned by the signed-in teacher. */
 export async function createStudent(formData: FormData): Promise<void> {
   const { user } = await requireTeacher();
+  const input = parseForm(formData, createStudentSchema);
   const supabase = await createClient();
-  const email = normalizeEmail(requiredText(formData, 'email'));
-  const password = nullableText(formData.get('password'));
-  const startDate = requiredText(formData, 'startDate');
+  const studentUserId = input.password
+    ? await ensureStudentAuthUser(input.email, input.password)
+    : null;
 
-  // Create an auth user for the student if a password was provided.
-  let studentUserId: string | null = null;
-  if (password) {
-    const admin = createAdminClient();
-    const { data: authData, error: authError } =
-      await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-    if (authError && !authError.message.includes('already been registered')) {
-      throw new Error(authError.message);
-    }
-    if (authData?.user) {
-      studentUserId = authData.user.id;
-    } else {
-      // User already exists — look up their id.
-      const { data: users } = await admin.auth.admin.listUsers();
-      const existing = users?.users.find((u) => u.email === email);
-      if (existing) studentUserId = existing.id;
-    }
-  }
-
-  const { error } = await supabase.from('students').insert({
-    email,
-    name: requiredText(formData, 'name'),
-    notes: nullableText(formData.get('notes')),
-    phone: nullableText(formData.get('phone')),
-    start_date: startDate,
+  await insertStudent(supabase, {
+    email: input.email,
+    name: input.name,
+    notes: input.notes,
+    phone: input.phone,
+    start_date: input.startDate,
     teacher_id: user.id,
     ...(studentUserId ? { user_id: studentUserId } : {}),
   });
-
-  if (error) {
-    throw new Error(error.message);
-  }
 
   revalidatePath('/students');
   redirect('/students');
@@ -315,61 +193,32 @@ export async function createStudent(formData: FormData): Promise<void> {
 /** Updates an existing student. */
 export async function updateStudent(formData: FormData): Promise<void> {
   await requireTeacher();
+  const input = parseForm(formData, updateStudentSchema);
   const supabase = await createClient();
-  const studentId = requiredText(formData, 'studentId');
-  const status = requiredText(formData, 'status') as StudentStatus;
-  const email = normalizeEmail(requiredText(formData, 'email'));
-  const password = nullableText(formData.get('password'));
 
-  // Update or create auth user password if provided.
-  if (password) {
-    const admin = createAdminClient();
-    const { data: users } = await admin.auth.admin.listUsers();
-    const existing = users?.users.find((u) => u.email === email);
-    if (existing) {
-      await admin.auth.admin.updateUserById(existing.id, { password });
-    } else {
-      await admin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-    }
+  if (input.password) {
+    await ensureStudentAuthUser(input.email, input.password);
   }
 
-  const { error } = await supabase
-    .from('students')
-    .update({
-      email,
-      name: requiredText(formData, 'name'),
-      notes: nullableText(formData.get('notes')),
-      phone: nullableText(formData.get('phone')),
-      start_date: requiredText(formData, 'startDate'),
-      status,
-    })
-    .eq('id', studentId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await updateStudentRow(supabase, input.studentId, {
+    email: input.email,
+    name: input.name,
+    notes: input.notes,
+    phone: input.phone,
+    start_date: input.startDate,
+    status: input.status,
+  });
 
   revalidatePath('/students');
-  redirect(`/students/${studentId}`);
+  redirect(`/students/${input.studentId}`);
 }
 
 /** Archives a student without deleting history. */
 export async function archiveStudent(formData: FormData): Promise<void> {
   await requireTeacher();
+  const { studentId } = parseForm(formData, studentIdSchema);
   const supabase = await createClient();
-  const studentId = requiredText(formData, 'studentId');
-  const { error } = await supabase
-    .from('students')
-    .update({ status: 'inactive' })
-    .eq('id', studentId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await archiveStudentRow(supabase, studentId);
 
   revalidatePath('/students');
   redirect('/students');
@@ -378,20 +227,9 @@ export async function archiveStudent(formData: FormData): Promise<void> {
 /** Updates the teacher's default mistake cap. */
 export async function updateSettings(formData: FormData): Promise<void> {
   const { user } = await requireTeacher();
+  const { maxMistakesPerSession } = parseForm(formData, settingsSchema);
   const supabase = await createClient();
-  const { error } = await supabase
-    .from('settings')
-    .update({
-      max_mistakes_per_session: positiveInteger(
-        formData,
-        'maxMistakesPerSession',
-      ),
-    })
-    .eq('teacher_id', user.id);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await updateMaxMistakes(supabase, user.id, maxMistakesPerSession);
 
   revalidatePath('/settings');
   redirect('/settings?saved=1');
@@ -400,19 +238,15 @@ export async function updateSettings(formData: FormData): Promise<void> {
 /** Schedules a lesson for a student. */
 export async function createLesson(formData: FormData): Promise<void> {
   await requireTeacher();
+  const { assignment, maxMistakes, scheduledAt, studentId } =
+    parseCreateLesson(formData);
   const supabase = await createClient();
-  const scheduledAt = requiredText(formData, 'scheduledAt');
-  const assignment = parseAssignment(formData);
-  const { error } = await supabase.from('lessons').insert({
+  await insertLesson(supabase, {
     ...assignment,
-    max_mistakes: positiveInteger(formData, 'maxMistakes'),
+    max_mistakes: maxMistakes,
     scheduled_at: new Date(scheduledAt).toISOString(),
-    student_id: requiredText(formData, 'studentId'),
+    student_id: studentId,
   });
-
-  if (error) {
-    throw new Error(error.message);
-  }
 
   revalidatePath('/lessons');
   redirectBack(formData, '/lessons');
@@ -421,17 +255,9 @@ export async function createLesson(formData: FormData): Promise<void> {
 /** Marks a lesson completed or cancelled. */
 export async function updateLessonStatus(formData: FormData): Promise<void> {
   await requireTeacher();
+  const { lessonId, status } = parseForm(formData, lessonStatusSchema);
   const supabase = await createClient();
-  const lessonId = requiredText(formData, 'lessonId');
-  const status = requiredText(formData, 'status') as LessonStatus;
-  const { error } = await supabase
-    .from('lessons')
-    .update({ status })
-    .eq('id', lessonId);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await setLessonStatus(supabase, lessonId, status);
 
   revalidatePath('/lessons');
   redirectBack(formData, '/lessons');
@@ -440,53 +266,29 @@ export async function updateLessonStatus(formData: FormData): Promise<void> {
 /** Starts a session from a scheduled lesson. */
 export async function startLessonSession(formData: FormData): Promise<void> {
   await requireTeacher();
+  const { lessonId } = parseForm(formData, lessonIdSchema);
   const supabase = await createClient();
-  const lessonId = requiredText(formData, 'lessonId');
-  const { data: lesson, error: lessonError } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('id', lessonId)
-    .single();
+  const lesson = await getLesson(supabase, lessonId);
+  const sessionId = await insertSession(supabase, {
+    lesson_id: lesson.id,
+    max_mistakes_snapshot: lesson.max_mistakes,
+    student_id: lesson.student_id,
+  });
 
-  if (lessonError) {
-    throw new Error(lessonError.message);
-  }
-
-  const { data: session, error } = await supabase
-    .from('sessions')
-    .insert({
-      lesson_id: lesson.id,
-      max_mistakes_snapshot: lesson.max_mistakes,
-      student_id: lesson.student_id,
-    })
-    .select('id')
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  redirect(`/sessions/${session.id}`);
+  redirect(`/sessions/${sessionId}`);
 }
 
 /** Starts an ad hoc session using the teacher's default mistake cap. */
 export async function startAdHocSession(formData: FormData): Promise<void> {
   const { settings } = await requireTeacher();
+  const { studentId } = parseForm(formData, studentIdSchema);
   const supabase = await createClient();
-  const { data: session, error } = await supabase
-    .from('sessions')
-    .insert({
-      max_mistakes_snapshot: settings.max_mistakes_per_session,
-      student_id: requiredText(formData, 'studentId'),
-    })
-    .select('id')
-    .single();
+  const sessionId = await insertSession(supabase, {
+    max_mistakes_snapshot: settings.max_mistakes_per_session,
+    student_id: studentId,
+  });
 
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  redirect(`/sessions/${session.id}`);
+  redirect(`/sessions/${sessionId}`);
 }
 
 /** Persists the current live mistake count for an active session. */
@@ -496,15 +298,11 @@ export async function setMistakeCount(
 ): Promise<void> {
   await requireTeacher();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from('sessions')
-    .update({ mistake_count: Math.max(0, Math.trunc(mistakeCount)) })
-    .eq('id', sessionId)
-    .is('ended_at', null);
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  await updateMistakeCount(
+    supabase,
+    sessionId,
+    Math.max(0, Math.trunc(mistakeCount)),
+  );
 }
 
 /** Ends a session and completes its linked lesson when present. */
@@ -514,26 +312,14 @@ export async function endSession(
 ): Promise<void> {
   await requireTeacher();
   const supabase = await createClient();
-  const finalCount = Math.max(0, Math.trunc(mistakeCount));
-  const { data: session, error } = await supabase
-    .from('sessions')
-    .update({
-      ended_at: new Date().toISOString(),
-      mistake_count: finalCount,
-    })
-    .eq('id', sessionId)
-    .select('*')
-    .single();
-
-  if (error) {
-    throw new Error(error.message);
-  }
+  const session = await endSessionRow(
+    supabase,
+    sessionId,
+    Math.max(0, Math.trunc(mistakeCount)),
+  );
 
   if (session.lesson_id) {
-    await supabase
-      .from('lessons')
-      .update({ status: 'completed' })
-      .eq('id', session.lesson_id);
+    await completeLesson(supabase, session.lesson_id);
   }
 
   revalidatePath(`/students/${session.student_id}`);

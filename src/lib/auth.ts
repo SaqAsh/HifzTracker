@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { checkIsTeacher, getSettings } from '@/lib/data/settings';
 import type { Settings } from '@/lib/database.types';
 import { createClient } from '@/lib/supabase/server';
 
@@ -17,14 +18,7 @@ export async function getTeacherSettings(
   userId: string,
 ): Promise<null | Settings> {
   const supabase = await createClient();
-  const { data: settings } = await supabase
-    .from('settings')
-    .select('*')
-    .eq('teacher_id', userId)
-    .limit(1)
-    .maybeSingle();
-
-  return settings;
+  return getSettings(supabase, userId);
 }
 
 /** Returns the signed-in user or redirects to teacher login. */
@@ -56,7 +50,8 @@ export async function requireTeacher(): Promise<TeacherContext> {
   return { settings, user };
 }
 
-/** Checks whether a user id has a teacher settings row. */
+/** Checks whether a user id is registered as a teacher. */
 export async function isTeacher(userId: string): Promise<boolean> {
-  return (await getTeacherSettings(userId)) !== null;
+  const supabase = await createClient();
+  return checkIsTeacher(supabase, userId);
 }

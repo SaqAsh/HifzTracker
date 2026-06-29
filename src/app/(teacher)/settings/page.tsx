@@ -38,7 +38,10 @@ export default async function SettingsPage({
               required
             />
           </Field>
-          <p className="text-sm text-ink/60"></p>
+          <p className="text-sm text-ink/60">
+            New lessons start from this default. You can still override the cap
+            on each lesson.
+          </p>
           <button className={primaryButtonClassName} type="submit">
             Save Settings
           </button>

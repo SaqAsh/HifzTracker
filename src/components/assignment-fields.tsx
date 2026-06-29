@@ -1,14 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { Field } from '@/components/forms';
 import { UiSelect } from '@/components/ui-select';
-import {
-  HIZB_OPTIONS,
-  JUZ_OPTIONS,
-  SURAH_OPTIONS,
-  getSurah,
-} from '@/lib/quran';
+import { useAssignmentFields } from '@/hooks/use-assignment-fields';
+import { HIZB_OPTIONS, JUZ_OPTIONS, SURAH_OPTIONS } from '@/lib/quran';
 
 const ASSIGNMENT_TYPE_OPTIONS = [
   { label: 'Lesson', value: 'lesson' },
@@ -21,34 +16,66 @@ const REVISION_MODE_OPTIONS = [
   { label: 'Surah to surah', value: 'surah_range' },
 ];
 
+type RangeFieldsProps = {
+  fromLabel: string;
+  fromName: string;
+  options: { label: string; value: string }[];
+  placeholder?: string;
+  toLabel: string;
+  toName: string;
+};
+
+/** Paired from/to selects for a revision range. */
+function RangeFields({
+  fromLabel,
+  fromName,
+  options,
+  placeholder,
+  toLabel,
+  toName,
+}: RangeFieldsProps): React.JSX.Element {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Field label={fromLabel}>
+        <UiSelect
+          defaultValue="1"
+          name={fromName}
+          options={options}
+          placeholder={placeholder}
+        />
+      </Field>
+      <Field label={toLabel}>
+        <UiSelect
+          defaultValue="1"
+          name={toName}
+          options={options}
+          placeholder={placeholder}
+        />
+      </Field>
+    </div>
+  );
+}
+
 /** Structured lesson/revision assignment fields for scheduling forms. */
 export function AssignmentFields(): React.JSX.Element {
-  const [assignmentType, setAssignmentType] = useState('lesson');
-  const [lessonSurahNumber, setLessonSurahNumber] = useState('');
-  const [revisionMode, setRevisionMode] = useState('juz');
-  const selectedSurah = useMemo(
-    () => getSurah(lessonSurahNumber ? Number(lessonSurahNumber) : null),
-    [lessonSurahNumber],
-  );
-  const ayahOptions = useMemo(
-    () =>
-      selectedSurah
-        ? Array.from({ length: selectedSurah.ayahCount }, (_, index) => ({
-            label: `Ayah ${index + 1}`,
-            value: String(index + 1),
-          }))
-        : [],
-    [selectedSurah],
-  );
+  const {
+    assignmentType,
+    ayahOptions,
+    revisionMode,
+    selectedSurah,
+    setAssignmentType,
+    setLessonSurahNumber,
+    setRevisionMode,
+  } = useAssignmentFields();
 
   return (
     <section className="grid gap-4 rounded-[1.5rem] border border-teal/10 bg-cream p-3">
       <Field label="Assignment type">
         <UiSelect
           name="assignmentType"
-          value={assignmentType}
           onValueChange={setAssignmentType}
           options={ASSIGNMENT_TYPE_OPTIONS}
+          value={assignmentType}
         />
       </Field>
 
@@ -57,10 +84,9 @@ export function AssignmentFields(): React.JSX.Element {
           <Field label="Lesson surah">
             <UiSelect
               name="lessonSurahNumber"
-              value={lessonSurahNumber}
               onValueChange={setLessonSurahNumber}
-              placeholder="Choose surah"
               options={SURAH_OPTIONS}
+              placeholder="Choose surah"
             />
           </Field>
           {selectedSurah ? (
@@ -69,15 +95,15 @@ export function AssignmentFields(): React.JSX.Element {
                 <Field label="Ayah from">
                   <UiSelect
                     name="lessonAyahFrom"
-                    placeholder="Optional"
                     options={ayahOptions}
+                    placeholder="Optional"
                   />
                 </Field>
                 <Field label="Ayah to">
                   <UiSelect
                     name="lessonAyahTo"
-                    placeholder="Optional"
                     options={ayahOptions}
+                    placeholder="Optional"
                   />
                 </Field>
               </div>
@@ -92,69 +118,41 @@ export function AssignmentFields(): React.JSX.Element {
           <Field label="Revision range">
             <UiSelect
               name="revisionMode"
-              value={revisionMode}
               onValueChange={setRevisionMode}
               options={REVISION_MODE_OPTIONS}
+              value={revisionMode}
             />
           </Field>
 
           {revisionMode === 'juz' ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Juz from">
-                <UiSelect
-                  name="revisionJuzFrom"
-                  defaultValue="1"
-                  options={JUZ_OPTIONS}
-                />
-              </Field>
-              <Field label="Juz to">
-                <UiSelect
-                  name="revisionJuzTo"
-                  defaultValue="1"
-                  options={JUZ_OPTIONS}
-                />
-              </Field>
-            </div>
+            <RangeFields
+              fromLabel="Juz from"
+              fromName="revisionJuzFrom"
+              options={JUZ_OPTIONS}
+              toLabel="Juz to"
+              toName="revisionJuzTo"
+            />
           ) : null}
 
           {revisionMode === 'hizb' ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Hizb from">
-                <UiSelect
-                  name="revisionHizbFrom"
-                  defaultValue="1"
-                  options={HIZB_OPTIONS}
-                />
-              </Field>
-              <Field label="Hizb to">
-                <UiSelect
-                  name="revisionHizbTo"
-                  defaultValue="1"
-                  options={HIZB_OPTIONS}
-                />
-              </Field>
-            </div>
+            <RangeFields
+              fromLabel="Hizb from"
+              fromName="revisionHizbFrom"
+              options={HIZB_OPTIONS}
+              toLabel="Hizb to"
+              toName="revisionHizbTo"
+            />
           ) : null}
 
           {revisionMode === 'surah_range' ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Surah from">
-                <UiSelect
-                  name="revisionSurahFrom"
-                  defaultValue="1"
-                  placeholder="Choose surah"
-                  options={SURAH_OPTIONS}
-                />
-              </Field>
-              <Field label="Surah to">
-                <UiSelect
-                  name="revisionSurahTo"
-                  defaultValue="1"
-                  placeholder="Choose surah"
-                  options={SURAH_OPTIONS}
-                />
-              </Field>
-            </div>
+            <RangeFields
+              fromLabel="Surah from"
+              fromName="revisionSurahFrom"
+              options={SURAH_OPTIONS}
+              placeholder="Choose surah"
+              toLabel="Surah to"
+              toName="revisionSurahTo"
+            />
           ) : null}
         </div>
       )}

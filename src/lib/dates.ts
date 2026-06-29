@@ -1,3 +1,7 @@
+const MS_PER_MINUTE = 60_000;
+const MS_PER_DAY = 86_400_000;
+const MINUTES_PER_HOUR = 60;
+
 const DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
 });
@@ -38,7 +42,7 @@ export function daysSince(dateValue: string): number {
 
   return Math.max(
     0,
-    Math.floor((todayMidnight.getTime() - start.getTime()) / 86_400_000),
+    Math.floor((todayMidnight.getTime() - start.getTime()) / MS_PER_DAY),
   );
 }
 
@@ -50,15 +54,15 @@ export function formatDuration(
   const end = endedAt ? new Date(endedAt) : new Date();
   const minutes = Math.max(
     0,
-    Math.round((end.getTime() - new Date(startedAt).getTime()) / 60_000),
+    Math.round((end.getTime() - new Date(startedAt).getTime()) / MS_PER_MINUTE),
   );
 
-  if (minutes < 60) {
+  if (minutes < MINUTES_PER_HOUR) {
     return `${minutes} min`;
   }
 
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
+  const hours = Math.floor(minutes / MINUTES_PER_HOUR);
+  const remainingMinutes = minutes % MINUTES_PER_HOUR;
 
   return remainingMinutes === 0
     ? `${hours} hr`
@@ -68,6 +72,26 @@ export function formatDuration(
 /** Converts a Date into the value expected by datetime-local inputs. */
 export function toDateTimeLocalValue(date = new Date()): string {
   const offset = date.getTimezoneOffset();
-  const local = new Date(date.getTime() - offset * 60_000);
+  const local = new Date(date.getTime() - offset * MS_PER_MINUTE);
   return local.toISOString().slice(0, 16);
+}
+
+/** Splits a datetime-local string into a calendar date and HH:mm time. */
+export function parseDateTimeParts(value: string): {
+  date: Date;
+  time: string;
+} {
+  const [datePart, timePart = '12:00'] = value.split('T');
+  const date = datePart ? new Date(`${datePart}T00:00:00`) : new Date();
+
+  return { date, time: timePart.slice(0, 5) };
+}
+
+/** Combines a calendar date and HH:mm time into a datetime-local string. */
+export function combineDateAndTime(date: Date, time: string): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${time}`;
 }

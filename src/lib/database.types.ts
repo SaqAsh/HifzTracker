@@ -191,3 +191,8 @@ export type Settings = Database['public']['Tables']['settings']['Row'];
 export type Student = Database['public']['Tables']['students']['Row'];
 export type Lesson = Database['public']['Tables']['lessons']['Row'];
 export type Session = Database['public']['Tables']['sessions']['Row'];
+
+export type StudentInsert = Database['public']['Tables']['students']['Insert'];
+export type StudentUpdate = Database['public']['Tables']['students']['Update'];
+export type LessonInsert = Database['public']['Tables']['lessons']['Insert'];
+export type SessionInsert = Database['public']['Tables']['sessions']['Insert'];

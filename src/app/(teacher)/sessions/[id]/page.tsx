@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { MistakeCounter } from '@/components/mistake-counter';
 import { PageHeader } from '@/components/page-header';
 import { requireTeacher } from '@/lib/auth';
+import { getSession } from '@/lib/data/sessions';
+import { getStudent } from '@/lib/data/students';
 import { formatDateTime, formatDuration } from '@/lib/dates';
 import { createClient } from '@/lib/supabase/server';
 
@@ -16,21 +18,13 @@ export default async function SessionPage({
   await requireTeacher();
   const { id } = await params;
   const supabase = await createClient();
-  const { data: session } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const session = await getSession(supabase, id);
 
   if (!session) {
     notFound();
   }
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', session.student_id)
-    .single();
+  const student = await getStudent(supabase, session.student_id);
 
   if (!student) {
     notFound();

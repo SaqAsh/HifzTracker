@@ -8,15 +8,14 @@ import {
 } from '@/components/forms';
 import { PageHeader } from '@/components/page-header';
 import { UiSelect } from '@/components/ui-select';
-import type { StudentStatus } from '@/lib/database.types';
 import { requireTeacher } from '@/lib/auth';
+import { getStudent } from '@/lib/data/students';
+import { STUDENT_STATUS, STUDENT_STATUS_OPTIONS } from '@/lib/statuses';
 import { createClient } from '@/lib/supabase/server';
 
 type EditStudentPageProps = {
   params: Promise<{ id: string }>;
 };
-
-const STUDENT_STATUSES: StudentStatus[] = ['active', 'paused', 'inactive'];
 
 /** Student edit form. */
 export default async function EditStudentPage({
@@ -25,11 +24,7 @@ export default async function EditStudentPage({
   await requireTeacher();
   const { id } = await params;
   const supabase = await createClient();
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('id', id)
-    .maybeSingle();
+  const student = await getStudent(supabase, id);
 
   if (!student) {
     notFound();
@@ -89,7 +84,7 @@ export default async function EditStudentPage({
             <UiSelect
               name="status"
               defaultValue={student.status}
-              options={STUDENT_STATUSES.map((status) => ({
+              options={STUDENT_STATUS_OPTIONS.map((status) => ({
                 label: status,
                 value: status,
               }))}
@@ -107,14 +102,14 @@ export default async function EditStudentPage({
           </button>
         </form>
       </section>
-      {student.status !== 'inactive' ? (
+      {student.status === STUDENT_STATUS.INACTIVE ? null : (
         <form action={archiveStudent}>
-          <input type="hidden" name="studentId" value={student.id} />
+          <input name="studentId" type="hidden" value={student.id} />
           <button className={dangerButtonClassName} type="submit">
             Archive Student
           </button>
         </form>
-      ) : null}
+      )}
     </>
   );
 }

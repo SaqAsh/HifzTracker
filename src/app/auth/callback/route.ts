@@ -1,4 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { checkIsTeacher } from '@/lib/data/settings';
+import { claimStudentByEmail, getStudentByUserId } from '@/lib/data/students';
 import { createClient } from '@/lib/supabase/server';
 
 /** Handles Supabase auth redirects and routes by identity. */
@@ -20,37 +22,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  const { data: isTeacher } = await supabase.rpc('is_teacher', {
-    uid: user.id,
-  });
-
-  if (isTeacher) {
+  if (await checkIsTeacher(supabase, user.id)) {
     return NextResponse.redirect(new URL('/lessons', request.url));
   }
 
-  const { data: existingStudent } = await supabase
-    .from('students')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  let student = await getStudentByUserId(supabase, user.id);
 
-  if (!existingStudent) {
-    await supabase
-      .from('students')
-      .update({ user_id: user.id })
-      .is('user_id', null)
-      .eq('email', user.email.toLowerCase())
-      .select('id')
-      .maybeSingle();
+  if (!student) {
+    await claimStudentByEmail(supabase, user.email.toLowerCase(), user.id);
+    student = await getStudentByUserId(supabase, user.id);
   }
 
-  const { data: claimedStudent } = await supabase
-    .from('students')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
-  if (!claimedStudent) {
+  if (!student) {
     await supabase.auth.signOut();
     return NextResponse.redirect(
       new URL('/student/login?error=not_on_file', request.url),

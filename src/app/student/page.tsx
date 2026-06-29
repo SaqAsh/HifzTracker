@@ -1,21 +1,13 @@
 import { redirect } from 'next/navigation';
 import { signOut } from '@/app/actions';
 import { AppLogo } from '@/components/app-logo';
+import { emptyStateClassName } from '@/components/forms';
+import { StudentLessonCard } from '@/components/student-lesson-card';
 import { isTeacher } from '@/lib/auth';
-import type { Lesson } from '@/lib/database.types';
-import { formatDateTime } from '@/lib/dates';
-import { formatAssignmentSummary } from '@/lib/quran';
+import { listLessonsForStudent } from '@/lib/data/lessons';
+import { getStudentByUserId } from '@/lib/data/students';
+import { isUpcomingLesson } from '@/lib/lessons';
 import { createClient } from '@/lib/supabase/server';
-
-function lessonStatusLabel(lesson: Lesson): string {
-  if (lesson.status === 'scheduled') {
-    return new Date(lesson.scheduled_at).getTime() >= Date.now()
-      ? 'Upcoming'
-      : 'Past scheduled';
-  }
-
-  return lesson.status;
-}
 
 /** Read-only portal for a signed-in student. */
 export default async function StudentPortalPage(): Promise<React.JSX.Element> {
@@ -32,35 +24,18 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
     redirect('/lessons');
   }
 
-  const { data: student } = await supabase
-    .from('students')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  const student = await getStudentByUserId(supabase, user.id);
 
   if (!student) {
     await supabase.auth.signOut();
     redirect('/student/login?error=not_on_file');
   }
 
-  const { data: lessonsData } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('student_id', student.id)
-    .order('scheduled_at', { ascending: true });
-  const lessons = lessonsData ?? [];
-
-  const now = Date.now();
-  const upcomingLessons = lessons.filter(
-    (lesson) =>
-      lesson.status === 'scheduled' &&
-      new Date(lesson.scheduled_at).getTime() >= now,
-  );
-  const pastLessons = lessons.filter(
-    (lesson) =>
-      lesson.status !== 'scheduled' ||
-      new Date(lesson.scheduled_at).getTime() < now,
-  );
+  const lessons = await listLessonsForStudent(supabase, student.id, {
+    ascending: true,
+  });
+  const upcomingLessons = lessons.filter((lesson) => isUpcomingLesson(lesson));
+  const pastLessons = lessons.filter((lesson) => !isUpcomingLesson(lesson));
 
   return (
     <main className="safe-screen mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
@@ -77,7 +52,7 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
           </div>
         </div>
         <form action={signOut}>
-          <button type="submit" className="text-sm font-bold text-teal">
+          <button className="text-sm font-bold text-teal" type="submit">
             Sign out
           </button>
         </form>
@@ -88,22 +63,10 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
           Upcoming Lessons
         </h2>
         {upcomingLessons.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-teal/25 bg-cream p-5 text-center text-ink/60">
-            No upcoming lessons.
-          </div>
+          <div className={emptyStateClassName}>No upcoming lessons.</div>
         ) : (
           upcomingLessons.map((lesson) => (
-            <article
-              key={lesson.id}
-              className="rounded-[2rem] border border-teal/15 bg-cream p-4 shadow-sm"
-            >
-              <p className="font-semibold text-teal">
-                {formatDateTime(lesson.scheduled_at)}
-              </p>
-              <p className="mt-3 rounded-2xl border border-teal/10 bg-cream px-4 py-3 text-sm font-semibold text-ink">
-                {formatAssignmentSummary(lesson)}
-              </p>
-            </article>
+            <StudentLessonCard key={lesson.id} lesson={lesson} />
           ))
         )}
       </section>
@@ -113,27 +76,10 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
           Past Lessons
         </h2>
         {pastLessons.length === 0 ? (
-          <div className="rounded-[2rem] border border-dashed border-teal/25 bg-cream p-5 text-center text-ink/60">
-            No past lessons.
-          </div>
+          <div className={emptyStateClassName}>No past lessons.</div>
         ) : (
           pastLessons.map((lesson) => (
-            <article
-              key={lesson.id}
-              className="rounded-[2rem] border border-teal/15 bg-cream p-4 shadow-sm"
-            >
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-semibold text-teal">
-                  {formatDateTime(lesson.scheduled_at)}
-                </p>
-                <span className="rounded-full bg-sand/35 px-3 py-1 text-xs font-bold uppercase tracking-wide text-maroon">
-                  {lessonStatusLabel(lesson)}
-                </span>
-              </div>
-              <p className="mt-3 text-sm font-semibold text-ink">
-                {formatAssignmentSummary(lesson)}
-              </p>
-            </article>
+            <StudentLessonCard key={lesson.id} lesson={lesson} showStatus />
           ))
         )}
       </section>
