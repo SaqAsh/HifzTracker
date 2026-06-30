@@ -1,6 +1,6 @@
 import { createServerClient } from '@supabase/ssr';
 import { type NextRequest, NextResponse } from 'next/server';
-import { supabaseAnonKey, supabaseUrl } from '@/lib/env';
+import { supabasePublishableKey, supabaseUrl } from '@/lib/env';
 import type { Database } from '@/lib/database.types';
 
 /** Refreshes Supabase auth cookies for server-rendered routes. */
@@ -11,7 +11,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
 
   const supabase = createServerClient<Database>(
     supabaseUrl(),
-    supabaseAnonKey(),
+    supabasePublishableKey(),
     {
       cookies: {
         getAll() {

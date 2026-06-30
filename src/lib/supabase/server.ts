@@ -3,8 +3,8 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import {
-  supabaseAnonKey,
-  supabaseServiceRoleKey,
+  supabasePublishableKey,
+  supabaseSecretKey,
   supabaseUrl,
 } from '@/lib/env';
 import type { Database } from '@/lib/database.types';
@@ -13,7 +13,7 @@ import type { Database } from '@/lib/database.types';
 export async function createClient(): Promise<SupabaseClient<Database>> {
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(supabaseUrl(), supabaseAnonKey(), {
+  return createServerClient<Database>(supabaseUrl(), supabasePublishableKey(), {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -35,6 +35,6 @@ export async function createClient(): Promise<SupabaseClient<Database>> {
 export function createAdminClient(): SupabaseClient<Database> {
   return createSupabaseClient<Database>(
     supabaseUrl(),
-    supabaseServiceRoleKey(),
+    supabaseSecretKey(),
   );
 }

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { signOut } from '@/app/actions';
-import { AppLogo } from '@/components/app-logo';
 import { emptyStateClassName } from '@/components/forms';
+import { PageHeader } from '@/components/page-header';
 import { StudentLessonCard } from '@/components/student-lesson-card';
 import { isTeacher } from '@/lib/auth';
 import { listLessonsForStudent } from '@/lib/data/lessons';
@@ -38,51 +38,46 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
   const pastLessons = lessons.filter((lesson) => !isUpcomingLesson(lesson));
 
   return (
-    <main className="safe-screen mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
-      <header className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <AppLogo />
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.22em] text-sand">
-              Student Portal
-            </p>
-            <h1 className="font-serif text-3xl font-semibold text-teal">
-              {student.name}
-            </h1>
-          </div>
-        </div>
-        <form action={signOut}>
-          <button className="text-sm font-bold text-teal" type="submit">
-            Sign out
-          </button>
-        </form>
-      </header>
+    <div className="safe-screen">
+      <main className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col gap-6 px-4 py-5 sm:px-6 lg:px-8">
+        <PageHeader
+          eyebrow="Student Portal"
+          title={student.name}
+          trailing={
+            <form action={signOut}>
+              <button className="text-sm font-bold text-teal" type="submit">
+                Sign out
+              </button>
+            </form>
+          }
+        />
 
-      <section className="grid gap-3">
-        <h2 className="font-serif text-2xl font-semibold text-teal">
-          Upcoming Lessons
-        </h2>
-        {upcomingLessons.length === 0 ? (
-          <div className={emptyStateClassName}>No upcoming lessons.</div>
-        ) : (
-          upcomingLessons.map((lesson) => (
-            <StudentLessonCard key={lesson.id} lesson={lesson} />
-          ))
-        )}
-      </section>
+        <section className="grid gap-3">
+          <h2 className="font-serif text-2xl font-semibold text-teal">
+            Upcoming Lessons
+          </h2>
+          {upcomingLessons.length === 0 ? (
+            <div className={emptyStateClassName}>No upcoming lessons.</div>
+          ) : (
+            upcomingLessons.map((lesson) => (
+              <StudentLessonCard key={lesson.id} lesson={lesson} />
+            ))
+          )}
+        </section>
 
-      <section className="grid gap-3 pb-8">
-        <h2 className="font-serif text-2xl font-semibold text-teal">
-          Past Lessons
-        </h2>
-        {pastLessons.length === 0 ? (
-          <div className={emptyStateClassName}>No past lessons.</div>
-        ) : (
-          pastLessons.map((lesson) => (
-            <StudentLessonCard key={lesson.id} lesson={lesson} showStatus />
-          ))
-        )}
-      </section>
-    </main>
+        <section className="grid gap-3 pb-8">
+          <h2 className="font-serif text-2xl font-semibold text-teal">
+            Past Lessons
+          </h2>
+          {pastLessons.length === 0 ? (
+            <div className={emptyStateClassName}>No past lessons.</div>
+          ) : (
+            pastLessons.map((lesson) => (
+              <StudentLessonCard key={lesson.id} lesson={lesson} showStatus />
+            ))
+          )}
+        </section>
+      </main>
+    </div>
   );
 }

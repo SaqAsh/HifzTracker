@@ -15,10 +15,23 @@ npm install
 Create `.env.local`:
 
 ```bash
+# Required — the app throws on startup if any of these are unset
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SECRET_KEY=sb_secret_...
+
+# Optional — defaults to http://localhost:3000 when unset
 NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
+
+Get the keys from your Supabase dashboard under Project Settings → API Keys.
+The publishable key (`sb_publishable_...`) is safe for the browser; the secret
+key (`sb_secret_...`) is server-only, bypasses RLS, and must never be committed
+or exposed to the client.
+
+`NEXT_PUBLIC_SITE_URL` is optional locally since it falls back to
+`http://localhost:3000`, but you should set it in production so Supabase magic
+links redirect back to the correct URL.
 
 Run the Supabase migrations in `supabase/migrations/` against your project in
 filename order. Then create the teacher in Supabase Auth and insert one matching

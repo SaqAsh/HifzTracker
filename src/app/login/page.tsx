@@ -74,7 +74,7 @@ export default async function LoginPage({
           href="/student/login"
           className="mt-5 block text-center text-sm font-semibold text-teal"
         >
-          Student magic-link login
+          Student login
         </Link>
       </section>
     </main>
