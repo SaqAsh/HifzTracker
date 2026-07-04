@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Lora } from 'next/font/google';
+import { siteUrl } from '@/lib/env';
 
 import './globals.css';
 
@@ -14,12 +15,24 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl()),
   title: {
     default: 'Quran Teacher',
     template: '%s | Quran Teacher',
   },
   description: 'A lightweight lesson and session tracker for Quran teachers.',
   applicationName: 'Quran Teacher',
+  openGraph: {
+    title: 'Quran Teacher',
+    description: 'A lightweight lesson and session tracker for Quran teachers.',
+    siteName: 'Quran Teacher',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Quran Teacher',
+    description: 'A lightweight lesson and session tracker for Quran teachers.',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
