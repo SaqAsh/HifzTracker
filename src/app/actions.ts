@@ -1,5 +1,6 @@
 'use server';
 
+import { randomInt } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -18,9 +19,21 @@ import {
 } from '@/lib/data/sessions';
 import { updateMaxMistakes } from '@/lib/data/settings';
 import {
+  endSubacSession as endSubacSessionRow,
+  getSubacParticipant,
+  getSubacSession,
+  insertSubacParticipants,
+  insertSubacSession,
+  listSubacParticipants,
+  updateSubacCurrentPosition,
+  updateSubacParticipantMistakeCount,
+  updateSubacSessionMistakeCount,
+} from '@/lib/data/subac';
+import {
   archiveStudent as archiveStudentRow,
   claimStudentByEmail,
   insertStudent,
+  listActiveStudents,
   updateStudent as updateStudentRow,
 } from '@/lib/data/students';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
@@ -31,6 +44,7 @@ import {
   lessonIdSchema,
   lessonStatusSchema,
   parseCreateLesson,
+  parseCreateSubac,
   parseForm,
   settingsSchema,
   studentIdSchema,
@@ -50,6 +64,25 @@ function isSafeReturnPath(value: FormDataEntryValue | null): value is string {
 function redirectBack(formData: FormData, fallback: string): never {
   const returnTo = formData.get('returnTo');
   redirect(isSafeReturnPath(returnTo) ? returnTo : fallback);
+}
+
+function shuffled<T>(values: T[]): T[] {
+  const copy = [...values];
+
+  for (let index = copy.length - 1; index > 0; index -= 1) {
+    const swapIndex = randomInt(index + 1);
+    [copy[index], copy[swapIndex]] = [copy[swapIndex], copy[index]];
+  }
+
+  return copy;
+}
+
+function nonNegativeInteger(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.trunc(value));
 }
 
 /** Signs in the teacher with email/password Supabase auth. */
@@ -324,4 +357,132 @@ export async function endSession(
 
   revalidatePath(`/students/${session.student_id}`);
   redirect(`/students/${session.student_id}`);
+}
+
+/** Starts a Subac group session with a randomized saved student order. */
+export async function startSubacSession(formData: FormData): Promise<void> {
+  const { user } = await requireTeacher();
+  const input = parseCreateSubac(formData);
+  const supabase = await createClient();
+  const activeStudents = await listActiveStudents(supabase);
+  const activeById = new Map(
+    activeStudents.map((student) => [student.id, student] as const),
+  );
+  const selectedStudents = input.studentIds.map((studentId) =>
+    activeById.get(studentId),
+  );
+
+  if (selectedStudents.some((student) => !student)) {
+    throw new Error('Subac students must be active students in your roster');
+  }
+
+  const orderedStudents = shuffled(
+    selectedStudents.filter((student) => student !== undefined),
+  );
+  const subacSessionId = await insertSubacSession(supabase, {
+    max_mistakes_snapshot: input.maxMistakes,
+    portion_label: input.portionLabel,
+    teacher_id: user.id,
+  });
+
+  await insertSubacParticipants(
+    supabase,
+    orderedStudents.map((student, index) => ({
+      position: index + 1,
+      student_id: student.id,
+      subac_session_id: subacSessionId,
+    })),
+  );
+
+  revalidatePath('/subac');
+  redirect(`/subac/${subacSessionId}`);
+}
+
+/** Persists live per-student and total Subac mistake counts. */
+export async function setSubacMistakeCounts(
+  subacSessionId: string,
+  participantId: string,
+  participantMistakeCount: number,
+  totalMistakeCount: number,
+): Promise<void> {
+  await requireTeacher();
+  const nextParticipantMistakes = nonNegativeInteger(participantMistakeCount);
+  const nextTotalMistakes = nonNegativeInteger(totalMistakeCount);
+  const supabase = await createClient();
+  const session = await getSubacSession(supabase, subacSessionId);
+
+  if (!session || session.ended_at) {
+    return;
+  }
+
+  if (
+    nextTotalMistakes > session.max_mistakes_snapshot ||
+    nextTotalMistakes < session.mistake_count ||
+    nextParticipantMistakes > nextTotalMistakes
+  ) {
+    return;
+  }
+
+  const participant = await getSubacParticipant(
+    supabase,
+    subacSessionId,
+    participantId,
+  );
+
+  if (!participant || nextParticipantMistakes < participant.mistake_count) {
+    return;
+  }
+
+  await updateSubacSessionMistakeCount(
+    supabase,
+    subacSessionId,
+    nextTotalMistakes,
+  );
+  await updateSubacParticipantMistakeCount(
+    supabase,
+    participantId,
+    subacSessionId,
+    nextParticipantMistakes,
+  );
+}
+
+/** Persists the currently highlighted reciter in the Subac rotation. */
+export async function setSubacCurrentPosition(
+  subacSessionId: string,
+  currentRotationPosition: number,
+): Promise<void> {
+  await requireTeacher();
+  const nextPosition = nonNegativeInteger(currentRotationPosition);
+
+  if (nextPosition < 1) {
+    return;
+  }
+
+  const supabase = await createClient();
+  const session = await getSubacSession(supabase, subacSessionId);
+
+  if (!session || session.ended_at) {
+    return;
+  }
+
+  const participants = await listSubacParticipants(supabase, subacSessionId);
+
+  if (
+    !participants.some((participant) => participant.position === nextPosition)
+  ) {
+    return;
+  }
+
+  await updateSubacCurrentPosition(supabase, subacSessionId, nextPosition);
+}
+
+/** Ends a Subac group session and shows the completed summary. */
+export async function endSubacSession(subacSessionId: string): Promise<void> {
+  await requireTeacher();
+  const supabase = await createClient();
+  await endSubacSessionRow(supabase, subacSessionId);
+
+  revalidatePath('/subac');
+  revalidatePath(`/subac/${subacSessionId}`);
+  redirect(`/subac/${subacSessionId}`);
 }

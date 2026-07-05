@@ -7,9 +7,15 @@ type TeacherShellProps = {
   children: React.ReactNode;
 };
 
-function activeTab(pathname: string): 'lessons' | 'settings' | 'students' {
+function activeTab(
+  pathname: string,
+): 'lessons' | 'settings' | 'students' | 'subac' {
   if (pathname.startsWith('/settings')) {
     return 'settings';
+  }
+
+  if (pathname.startsWith('/subac')) {
+    return 'subac';
   }
 
   if (pathname.startsWith('/students') || pathname.startsWith('/sessions')) {

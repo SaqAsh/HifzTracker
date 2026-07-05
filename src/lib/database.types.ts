@@ -39,6 +39,69 @@ export type Database = {
         };
         Relationships: [];
       };
+      subac_sessions: {
+        Row: {
+          created_at: string;
+          current_rotation_position: number;
+          ended_at: null | string;
+          id: string;
+          max_mistakes_snapshot: number;
+          mistake_count: number;
+          portion_label: string;
+          started_at: string;
+          teacher_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          current_rotation_position?: number;
+          ended_at?: null | string;
+          id?: string;
+          max_mistakes_snapshot?: number;
+          mistake_count?: number;
+          portion_label: string;
+          started_at?: string;
+          teacher_id: string;
+        };
+        Update: {
+          created_at?: string;
+          current_rotation_position?: number;
+          ended_at?: null | string;
+          id?: string;
+          max_mistakes_snapshot?: number;
+          mistake_count?: number;
+          portion_label?: string;
+          started_at?: string;
+          teacher_id?: string;
+        };
+        Relationships: [];
+      };
+      subac_participants: {
+        Row: {
+          created_at: string;
+          id: string;
+          mistake_count: number;
+          position: number;
+          student_id: string;
+          subac_session_id: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          mistake_count?: number;
+          position: number;
+          student_id: string;
+          subac_session_id: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          mistake_count?: number;
+          position?: number;
+          student_id?: string;
+          subac_session_id?: string;
+        };
+        Relationships: [];
+      };
       students: {
         Row: {
           created_at: string;
@@ -191,8 +254,16 @@ export type Settings = Database['public']['Tables']['settings']['Row'];
 export type Student = Database['public']['Tables']['students']['Row'];
 export type Lesson = Database['public']['Tables']['lessons']['Row'];
 export type Session = Database['public']['Tables']['sessions']['Row'];
+export type SubacSession =
+  Database['public']['Tables']['subac_sessions']['Row'];
+export type SubacParticipant =
+  Database['public']['Tables']['subac_participants']['Row'];
 
 export type StudentInsert = Database['public']['Tables']['students']['Insert'];
 export type StudentUpdate = Database['public']['Tables']['students']['Update'];
 export type LessonInsert = Database['public']['Tables']['lessons']['Insert'];
 export type SessionInsert = Database['public']['Tables']['sessions']['Insert'];
+export type SubacSessionInsert =
+  Database['public']['Tables']['subac_sessions']['Insert'];
+export type SubacParticipantInsert =
+  Database['public']['Tables']['subac_participants']['Insert'];

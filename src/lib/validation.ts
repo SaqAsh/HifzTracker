@@ -68,6 +68,18 @@ export const lessonStatusSchema = z.object({
   status: z.enum(['cancelled', 'completed', 'scheduled']),
 });
 
+const subacStudentIdsSchema = z
+  .array(requiredText)
+  .transform((ids) => Array.from(new Set(ids)))
+  .refine((ids) => ids.length >= 2, {
+    message: 'Select at least two students',
+  });
+
+const subacSessionSchema = z.object({
+  maxMistakes: positiveInt,
+  portionLabel: requiredText,
+});
+
 const lessonScheduleSchema = z.object({
   maxMistakes: positiveInt,
   scheduledAt: requiredText,
@@ -249,5 +261,17 @@ export function parseCreateLesson(formData: FormData): CreateLessonInput {
   return {
     ...lessonScheduleSchema.parse(data),
     assignment: assignmentSchema.parse(data),
+  };
+}
+
+export type CreateSubacInput = z.infer<typeof subacSessionSchema> & {
+  studentIds: string[];
+};
+
+/** Parses the Subac start payload with its multi-value student list. */
+export function parseCreateSubac(formData: FormData): CreateSubacInput {
+  return {
+    ...subacSessionSchema.parse(Object.fromEntries(formData)),
+    studentIds: subacStudentIdsSchema.parse(formData.getAll('studentIds')),
   };
 }
