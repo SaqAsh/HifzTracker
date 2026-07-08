@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import { deleteSubacSession } from '@/app/actions';
-import { cardClassName, dangerButtonClassName } from '@/components/forms';
+import { cardClassName } from '@/components/forms';
 import type { SubacSession } from '@/lib/database.types';
 import { formatDateTime, formatDuration } from '@/lib/dates';
 
@@ -39,12 +38,6 @@ export function SubacSessionCard({
           </p>
         </div>
       </Link>
-      <form action={deleteSubacSession} className="mt-4">
-        <input name="subacSessionId" type="hidden" value={session.id} />
-        <button className={`${dangerButtonClassName} w-full`} type="submit">
-          Delete Subac
-        </button>
-      </form>
     </article>
   );
 }

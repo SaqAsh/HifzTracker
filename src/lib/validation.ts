@@ -67,11 +67,6 @@ export const subacSessionIdSchema = z.object({
 
 export const settingsSchema = z.object({ maxMistakesPerSession: positiveInt });
 
-export const lessonStatusSchema = z.object({
-  lessonId: requiredText,
-  status: z.enum(['cancelled', 'completed', 'scheduled']),
-});
-
 const subacStudentIdsSchema = z
   .array(requiredText)
   .transform((ids) => Array.from(new Set(ids)))

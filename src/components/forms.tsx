@@ -6,13 +6,13 @@ export const fieldClassName =
 export const labelClassName = 'text-sm font-semibold text-teal';
 
 export const primaryButtonClassName =
-  'tap-target inline-flex items-center justify-center rounded-2xl bg-teal px-5 py-3 text-center text-sm font-bold text-cream shadow-sm transition hover:bg-teal/90 disabled:cursor-not-allowed disabled:opacity-60';
+  'tap-target inline-flex w-full items-center justify-center rounded-2xl bg-teal px-5 py-3 text-center text-sm font-bold text-cream shadow-sm transition hover:bg-teal/90 disabled:cursor-not-allowed disabled:opacity-60';
 
 export const secondaryButtonClassName =
-  'tap-target inline-flex items-center justify-center rounded-2xl border border-teal/20 bg-cream px-5 py-3 text-center text-sm font-bold text-teal transition hover:bg-teal/10';
+  'tap-target inline-flex w-full items-center justify-center rounded-2xl border border-teal/20 bg-cream px-5 py-3 text-center text-sm font-bold text-teal transition hover:bg-teal/10';
 
 export const dangerButtonClassName =
-  'tap-target inline-flex items-center justify-center rounded-2xl bg-maroon px-5 py-3 text-center text-sm font-bold text-cream shadow-sm transition hover:bg-maroon/90';
+  'tap-target inline-flex w-full items-center justify-center rounded-2xl bg-maroon px-5 py-3 text-center text-sm font-bold text-cream shadow-sm transition hover:bg-maroon/90';
 
 export const cardClassName =
   'rounded-[2rem] border border-teal/15 bg-cream p-4 shadow-sm';

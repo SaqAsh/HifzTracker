@@ -96,7 +96,7 @@ export function StartSubacForm({
         </div>
 
         <button
-          className={`${primaryButtonClassName} w-full`}
+          className={primaryButtonClassName}
           disabled={!canStart}
           type="submit"
         >

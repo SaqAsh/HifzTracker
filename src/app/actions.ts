@@ -7,11 +7,10 @@ import { redirect } from 'next/navigation';
 import { requireTeacher } from '@/lib/auth';
 import { siteUrl } from '@/lib/env';
 import {
-  completeLesson,
+  completeLesson as completeLessonRow,
   deleteLesson as deleteLessonRow,
   getLesson,
   insertLesson,
-  setLessonStatus,
   updateLesson as updateLessonRow,
 } from '@/lib/data/lessons';
 import {
@@ -42,7 +41,6 @@ import {
   credentialsSchema,
   emailSchema,
   lessonIdSchema,
-  lessonStatusSchema,
   parseCreateLesson,
   parseCreateSubac,
   parseForm,
@@ -308,19 +306,6 @@ export async function updateLesson(formData: FormData): Promise<void> {
   redirectBack(formData, '/lessons');
 }
 
-/** Marks a lesson completed or cancelled. */
-export async function updateLessonStatus(formData: FormData): Promise<void> {
-  await requireTeacher();
-  const { lessonId, status } = parseForm(formData, lessonStatusSchema);
-  const supabase = await createClient();
-  await setLessonStatus(supabase, lessonId, status);
-  const lesson = await getLesson(supabase, lessonId);
-
-  revalidatePath('/lessons');
-  revalidatePath(`/students/${lesson.student_id}`);
-  redirectBack(formData, '/lessons');
-}
-
 /** Deletes an incorrect lesson that is not tied to a completed session. */
 export async function deleteLesson(formData: FormData): Promise<void> {
   await requireTeacher();
@@ -377,7 +362,7 @@ export async function endSession(
   );
 
   if (session.lesson_id) {
-    await completeLesson(supabase, session.lesson_id);
+    await completeLessonRow(supabase, session.lesson_id);
     revalidatePath('/lessons');
   }
 
@@ -524,11 +509,19 @@ export async function finishSubacSession(
   redirect(`/subac/${subacSessionId}`);
 }
 
-/** Deletes an incorrect Subac session and its participant rows. */
+/** Deletes a completed Subac session and its participant rows. */
 export async function deleteSubacSession(formData: FormData): Promise<void> {
   await requireTeacher();
   const { subacSessionId } = parseForm(formData, subacSessionIdSchema);
   const supabase = await createClient();
+  const session = await getSubacSession(supabase, subacSessionId);
+
+  if (!session?.ended_at) {
+    revalidatePath('/subac');
+    revalidatePath(`/subac/${subacSessionId}`);
+    redirect(session ? `/subac/${subacSessionId}` : '/subac');
+  }
+
   await deleteSubacSessionRow(supabase, subacSessionId);
 
   revalidatePath('/subac');

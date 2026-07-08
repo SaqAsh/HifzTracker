@@ -21,7 +21,7 @@ export default function NotFound(): React.JSX.Element {
         <p className="mb-6 text-sm text-ink/60">
           The page you are looking for does not exist or has moved.
         </p>
-        <Link className={`${primaryButtonClassName} w-full`} href="/">
+        <Link className={primaryButtonClassName} href="/">
           Go home
         </Link>
       </section>

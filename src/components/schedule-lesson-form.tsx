@@ -64,7 +64,7 @@ export function ScheduleLessonForm({
           </Field>
         </div>
         <AssignmentFields />
-        <button className={`${primaryButtonClassName} w-full`} type="submit">
+        <button className={primaryButtonClassName} type="submit">
           Add Lesson
         </button>
       </form>

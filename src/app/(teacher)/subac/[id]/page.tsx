@@ -76,7 +76,7 @@ export default async function SubacSessionPage({
         </Link>
         <form action={deleteSubacSession}>
           <input name="subacSessionId" type="hidden" value={session.id} />
-          <button className={`${dangerButtonClassName} w-full`} type="submit">
+          <button className={dangerButtonClassName} type="submit">
             Delete Subac
           </button>
         </form>

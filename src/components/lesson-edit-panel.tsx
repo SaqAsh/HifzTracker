@@ -8,7 +8,6 @@ import {
   Field,
   fieldClassName,
   primaryButtonClassName,
-  secondaryButtonClassName,
 } from '@/components/forms';
 import { UiSelect } from '@/components/ui-select';
 import type { Lesson } from '@/lib/database.types';
@@ -25,6 +24,24 @@ type LessonEditPanelProps = {
   students?: StudentOption[];
 };
 
+function EditIcon(): React.JSX.Element {
+  return (
+    <svg
+      aria-hidden="true"
+      className="h-5 w-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M12 20h9" />
+      <path d="m16.5 3.5 4 4L7 21H3v-4L16.5 3.5z" />
+    </svg>
+  );
+}
+
 /** Lazily renders the full lesson edit form from a lesson card. */
 export function LessonEditPanel({
   lesson,
@@ -36,19 +53,20 @@ export function LessonEditPanel({
   if (!isEditing) {
     return (
       <button
-        className={`${secondaryButtonClassName} w-full`}
+        aria-label="Edit lesson"
+        className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-teal/15 bg-cream text-teal shadow-sm transition hover:bg-teal/10"
         onClick={() => {
           setIsEditing(true);
         }}
         type="button"
       >
-        Edit
+        <EditIcon />
       </button>
     );
   }
 
   return (
-    <section className="border-t border-teal/10 pt-4">
+    <section className="mt-4 border-t border-teal/10 pt-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-serif text-xl font-semibold text-teal">
           Edit Lesson
@@ -106,7 +124,7 @@ export function LessonEditPanel({
 
         <AssignmentFields defaultAssignment={lesson} />
 
-        <button className={`${primaryButtonClassName} w-full`} type="submit">
+        <button className={primaryButtonClassName} type="submit">
           Save Changes
         </button>
       </form>

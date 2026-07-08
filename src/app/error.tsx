@@ -36,7 +36,7 @@ export default function ErrorBoundary({
           The action could not be completed. Please try again.
         </p>
         <button
-          className={`${primaryButtonClassName} w-full`}
+          className={primaryButtonClassName}
           onClick={reset}
           type="button"
         >

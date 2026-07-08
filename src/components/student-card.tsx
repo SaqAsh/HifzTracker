@@ -38,7 +38,7 @@ export function StudentCard({
           {student.status}
         </span>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <div className="mt-4 grid gap-2">
         <Link
           className={secondaryButtonClassName}
           href={`/students/${student.id}/edit`}

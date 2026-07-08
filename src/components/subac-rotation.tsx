@@ -2,7 +2,7 @@
 
 import { clsx } from 'clsx';
 import { startTransition, useRef, useState } from 'react';
-import { deleteSubacSession, finishSubacSession } from '@/app/actions';
+import { finishSubacSession } from '@/app/actions';
 import { dangerButtonClassName, secondaryButtonClassName } from './forms';
 
 type SubacRotationParticipant = {
@@ -191,12 +191,6 @@ export function SubacRotation({
           {isEnding ? 'Finishing...' : 'Finish Subac'}
         </button>
       </div>
-      <form action={deleteSubacSession}>
-        <input name="subacSessionId" type="hidden" value={subacSessionId} />
-        <button className={`${dangerButtonClassName} w-full`} type="submit">
-          Delete Subac
-        </button>
-      </form>
     </section>
   );
 }

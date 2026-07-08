@@ -13,7 +13,7 @@ import {
 export function AddStudentDialog(): React.JSX.Element {
   return (
     <Dialog.Root>
-      <Dialog.Trigger className={`${primaryButtonClassName} w-full sm:w-auto`}>
+      <Dialog.Trigger className={`${primaryButtonClassName} sm:w-auto`}>
         Add Student
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -79,14 +79,11 @@ export function AddStudentDialog(): React.JSX.Element {
               />
             </Field>
             <div className="grid gap-2 sm:grid-cols-2">
-              <button
-                className={`${primaryButtonClassName} w-full`}
-                type="submit"
-              >
+              <button className={primaryButtonClassName} type="submit">
                 Save Student
               </button>
               <Dialog.Close
-                className={`${secondaryButtonClassName} w-full`}
+                className={secondaryButtonClassName}
                 type="button"
               >
                 Cancel

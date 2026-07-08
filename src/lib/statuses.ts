@@ -16,7 +16,6 @@ export const STUDENT_STATUS_OPTIONS: StudentStatus[] = [
 
 /** Canonical lesson lifecycle statuses. */
 export const LESSON_STATUS = {
-  CANCELLED: 'cancelled',
   COMPLETED: 'completed',
   SCHEDULED: 'scheduled',
 } as const satisfies Record<string, LessonStatus>;

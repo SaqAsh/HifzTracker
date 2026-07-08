@@ -1,9 +1,6 @@
 import { assignmentSummaryClassName, cardClassName } from '@/components/forms';
 import { LessonEditPanel } from '@/components/lesson-edit-panel';
-import {
-  LessonStatusActions,
-  StartSessionButton,
-} from '@/components/lesson-actions';
+import { StartSessionButton } from '@/components/lesson-actions';
 import { StudentPrefetchLink } from '@/components/student-prefetch-link';
 import type { Lesson } from '@/lib/database.types';
 import { formatDateTime, formatTime } from '@/lib/dates';
@@ -16,7 +13,7 @@ type LessonCardShellProps = {
   students?: { id: string; name: string }[];
 };
 
-/** Shared lesson card layout: header, start control, summary, status actions. */
+/** Shared lesson card layout: header, edit control, assignment summary, and start action. */
 function LessonCardShell({
   header,
   lesson,
@@ -24,23 +21,19 @@ function LessonCardShell({
   students,
 }: LessonCardShellProps): React.JSX.Element {
   return (
-    <article className={cardClassName}>
-      {header}
+    <article className={`${cardClassName} relative`}>
+      <div className="pr-12">{header}</div>
       <p className={assignmentSummaryClassName}>
         {formatAssignmentSummary(lesson)}
       </p>
-      <div className="mt-3 grid gap-2">
+      <div className="mt-3">
         <StartSessionButton lessonId={lesson.id} />
-        <LessonEditPanel
-          lesson={lesson}
-          returnTo={returnTo}
-          students={students}
-        />
-        <LessonStatusActions
-          lessonId={lesson.id}
-          returnTo={returnTo}
-        />
       </div>
+      <LessonEditPanel
+        lesson={lesson}
+        returnTo={returnTo}
+        students={students}
+      />
     </article>
   );
 }
