@@ -36,7 +36,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (!student) {
     await supabase.auth.signOut();
     return NextResponse.redirect(
-      new URL('/student/login?error=not_on_file', request.url),
+      new URL('/student/login?error=invalid', request.url),
     );
   }
 

@@ -16,7 +16,7 @@ export default async function StudentLoginPage({
   searchParams,
 }: StudentLoginPageProps): Promise<React.JSX.Element> {
   const params = await searchParams;
-  const invalidCreds = params?.error === 'invalid_credentials';
+  const hasError = params?.error === 'invalid';
 
   return (
     <main className="safe-screen grid place-items-center px-4 py-8">
@@ -33,9 +33,9 @@ export default async function StudentLoginPage({
           </div>
         </div>
 
-        {invalidCreds ? (
+        {hasError ? (
           <p className="mb-4 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-cream">
-            Invalid email or password. Try again.
+            Invalid sign-in. Check your credentials and try again.
           </p>
         ) : null}
 

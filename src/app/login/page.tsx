@@ -17,7 +17,6 @@ export default async function LoginPage({
 }: LoginPageProps): Promise<React.JSX.Element> {
   const params = await searchParams;
   const hasError = params?.error === 'invalid';
-  const hasTeacherSetupError = params?.error === 'teacher_setup';
 
   return (
     <main className="safe-screen grid place-items-center px-4 py-8">
@@ -36,13 +35,7 @@ export default async function LoginPage({
 
         {hasError ? (
           <p className="mb-4 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-cream">
-            Invalid email or password.
-          </p>
-        ) : null}
-        {hasTeacherSetupError ? (
-          <p className="mb-4 rounded-2xl bg-maroon px-4 py-3 text-sm font-semibold text-cream">
-            This login is valid, but no matching teacher settings row was found
-            in Supabase.
+            Invalid sign-in. Check your credentials and try again.
           </p>
         ) : null}
 

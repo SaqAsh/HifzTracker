@@ -36,7 +36,7 @@ export function LessonEditPanel({
   if (!isEditing) {
     return (
       <button
-        className={`${secondaryButtonClassName} mt-3 w-full`}
+        className={`${secondaryButtonClassName} w-full`}
         onClick={() => {
           setIsEditing(true);
         }}
@@ -48,7 +48,7 @@ export function LessonEditPanel({
   }
 
   return (
-    <section className="mt-4 border-t border-teal/10 pt-4">
+    <section className="border-t border-teal/10 pt-4">
       <div className="flex items-center justify-between gap-3">
         <h3 className="font-serif text-xl font-semibold text-teal">
           Edit Lesson

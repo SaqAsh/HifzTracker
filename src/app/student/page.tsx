@@ -28,7 +28,7 @@ export default async function StudentPortalPage(): Promise<React.JSX.Element> {
 
   if (!student) {
     await supabase.auth.signOut();
-    redirect('/student/login?error=not_on_file');
+    redirect('/student/login?error=invalid');
   }
 
   const lessons = await listLessonsForStudent(supabase, student.id, {

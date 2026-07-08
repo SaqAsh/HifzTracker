@@ -61,6 +61,10 @@ export const studentIdSchema = z.object({ studentId: requiredText });
 
 export const lessonIdSchema = z.object({ lessonId: requiredText });
 
+export const subacSessionIdSchema = z.object({
+  subacSessionId: requiredText,
+});
+
 export const settingsSchema = z.object({ maxMistakesPerSession: positiveInt });
 
 export const lessonStatusSchema = z.object({

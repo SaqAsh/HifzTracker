@@ -57,6 +57,19 @@ export async function updateMistakeCount(
   );
 }
 
+/** Deletes sessions that were created from an incorrect lesson row. */
+export async function deleteSessionsForLesson(
+  db: DbClient,
+  lessonId: string,
+): Promise<void> {
+  expectOk(
+    await db
+      .from('sessions')
+      .delete()
+      .eq('lesson_id', lessonId),
+  );
+}
+
 /** Ends a session, stamping the end time and final count. */
 export async function endSession(
   db: DbClient,

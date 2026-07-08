@@ -25,15 +25,22 @@ function LessonCardShell({
 }: LessonCardShellProps): React.JSX.Element {
   return (
     <article className={cardClassName}>
-      <div className="flex items-start justify-between gap-3">
-        {header}
-        <StartSessionButton lessonId={lesson.id} />
-      </div>
+      {header}
       <p className={assignmentSummaryClassName}>
         {formatAssignmentSummary(lesson)}
       </p>
-      <LessonEditPanel lesson={lesson} returnTo={returnTo} students={students} />
-      <LessonStatusActions lessonId={lesson.id} returnTo={returnTo} />
+      <div className="mt-3 grid gap-2">
+        <StartSessionButton lessonId={lesson.id} />
+        <LessonEditPanel
+          lesson={lesson}
+          returnTo={returnTo}
+          students={students}
+        />
+        <LessonStatusActions
+          lessonId={lesson.id}
+          returnTo={returnTo}
+        />
+      </div>
     </article>
   );
 }

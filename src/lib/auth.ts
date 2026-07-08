@@ -44,7 +44,7 @@ export async function requireTeacher(): Promise<TeacherContext> {
   const settings = await getTeacherSettings(user.id);
 
   if (!settings) {
-    redirect('/login?error=teacher_setup');
+    redirect('/login?error=invalid');
   }
 
   return { settings, user };

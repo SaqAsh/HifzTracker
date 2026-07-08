@@ -56,6 +56,11 @@ export async function insertLesson(
   expectOk(await db.from('lessons').insert(values));
 }
 
+/** Deletes a lesson by id. */
+export async function deleteLesson(db: DbClient, id: string): Promise<void> {
+  expectOk(await db.from('lessons').delete().eq('id', id));
+}
+
 /** Updates a scheduled lesson and returns the persisted row. */
 export async function updateLesson(
   db: DbClient,

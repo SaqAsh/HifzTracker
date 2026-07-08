@@ -8,27 +8,26 @@ import { requireTeacher } from '@/lib/auth';
 import { siteUrl } from '@/lib/env';
 import {
   completeLesson,
+  deleteLesson as deleteLessonRow,
   getLesson,
   insertLesson,
   setLessonStatus,
   updateLesson as updateLessonRow,
 } from '@/lib/data/lessons';
 import {
+  deleteSessionsForLesson,
   endSession as endSessionRow,
   insertSession,
-  updateMistakeCount,
 } from '@/lib/data/sessions';
 import { updateMaxMistakes } from '@/lib/data/settings';
 import {
+  deleteSubacSession as deleteSubacSessionRow,
   endSubacSession as endSubacSessionRow,
-  getSubacParticipant,
   getSubacSession,
   insertSubacParticipants,
   insertSubacSession,
   listSubacParticipants,
-  updateSubacCurrentPosition,
   updateSubacParticipantMistakeCount,
-  updateSubacSessionMistakeCount,
 } from '@/lib/data/subac';
 import {
   archiveStudent as archiveStudentRow,
@@ -50,6 +49,7 @@ import {
   parseUpdateLesson,
   settingsSchema,
   studentIdSchema,
+  subacSessionIdSchema,
   updateStudentSchema,
 } from '@/lib/validation';
 
@@ -116,7 +116,7 @@ export async function sendStudentMagicLink(formData: FormData): Promise<void> {
   });
 
   if (error) {
-    redirect('/student/login?error=send_failed');
+    redirect('/student/login?error=invalid');
   }
 
   redirect('/student/login?sent=1');
@@ -134,7 +134,7 @@ export async function signInStudentWithPassword(
   });
 
   if (error) {
-    redirect('/student/login?error=invalid_credentials');
+    redirect('/student/login?error=invalid');
   }
 
   if (data.user) {
@@ -321,6 +321,20 @@ export async function updateLessonStatus(formData: FormData): Promise<void> {
   redirectBack(formData, '/lessons');
 }
 
+/** Deletes an incorrect lesson that is not tied to a completed session. */
+export async function deleteLesson(formData: FormData): Promise<void> {
+  await requireTeacher();
+  const { lessonId } = parseForm(formData, lessonIdSchema);
+  const supabase = await createClient();
+  const lesson = await getLesson(supabase, lessonId);
+  await deleteSessionsForLesson(supabase, lessonId);
+  await deleteLessonRow(supabase, lessonId);
+
+  revalidatePath('/lessons');
+  revalidatePath(`/students/${lesson.student_id}`);
+  redirectBack(formData, '/lessons');
+}
+
 /** Starts a session from a scheduled lesson. */
 export async function startLessonSession(formData: FormData): Promise<void> {
   await requireTeacher();
@@ -347,20 +361,6 @@ export async function startAdHocSession(formData: FormData): Promise<void> {
   });
 
   redirect(`/sessions/${sessionId}`);
-}
-
-/** Persists the current live mistake count for an active session. */
-export async function setMistakeCount(
-  sessionId: string,
-  mistakeCount: number,
-): Promise<void> {
-  await requireTeacher();
-  const supabase = await createClient();
-  await updateMistakeCount(
-    supabase,
-    sessionId,
-    Math.max(0, Math.trunc(mistakeCount)),
-  );
 }
 
 /** Ends a session and completes its linked lesson when present. */
@@ -424,91 +424,114 @@ export async function startSubacSession(formData: FormData): Promise<void> {
   redirect(`/subac/${subacSessionId}`);
 }
 
-/** Persists live per-student and total Subac mistake counts. */
-export async function setSubacMistakeCounts(
+type FinalSubacParticipantCount = {
+  id: string;
+  mistakeCount: number;
+};
+
+type FinalSubacState = {
+  currentPosition: number;
+  participants: FinalSubacParticipantCount[];
+  totalMistakes: number;
+};
+
+/** Ends a Subac group session and persists the final local counter state. */
+export async function finishSubacSession(
   subacSessionId: string,
-  participantId: string,
-  participantMistakeCount: number,
-  totalMistakeCount: number,
+  finalState: FinalSubacState,
 ): Promise<void> {
   await requireTeacher();
-  const nextParticipantMistakes = nonNegativeInteger(participantMistakeCount);
-  const nextTotalMistakes = nonNegativeInteger(totalMistakeCount);
   const supabase = await createClient();
   const session = await getSubacSession(supabase, subacSessionId);
 
-  if (!session || session.ended_at) {
-    return;
-  }
-
   if (
-    nextTotalMistakes > session.max_mistakes_snapshot ||
-    nextTotalMistakes < session.mistake_count ||
-    nextParticipantMistakes > nextTotalMistakes
+    !session ||
+    session.ended_at ||
+    !finalState ||
+    typeof finalState !== 'object' ||
+    !Array.isArray(finalState.participants)
   ) {
     return;
   }
 
-  const participant = await getSubacParticipant(
-    supabase,
-    subacSessionId,
-    participantId,
-  );
-
-  if (!participant || nextParticipantMistakes < participant.mistake_count) {
-    return;
-  }
-
-  await updateSubacSessionMistakeCount(
-    supabase,
-    subacSessionId,
-    nextTotalMistakes,
-  );
-  await updateSubacParticipantMistakeCount(
-    supabase,
-    participantId,
-    subacSessionId,
-    nextParticipantMistakes,
-  );
-}
-
-/** Persists the currently highlighted reciter in the Subac rotation. */
-export async function setSubacCurrentPosition(
-  subacSessionId: string,
-  currentRotationPosition: number,
-): Promise<void> {
-  await requireTeacher();
-  const nextPosition = nonNegativeInteger(currentRotationPosition);
-
-  if (nextPosition < 1) {
-    return;
-  }
-
-  const supabase = await createClient();
-  const session = await getSubacSession(supabase, subacSessionId);
-
-  if (!session || session.ended_at) {
-    return;
-  }
-
   const participants = await listSubacParticipants(supabase, subacSessionId);
+  const nextPosition = nonNegativeInteger(Number(finalState.currentPosition));
+  const submittedCounts = new Map<string, number>();
+
+  for (const participant of finalState.participants) {
+    if (!participant || typeof participant.id !== 'string') {
+      return;
+    }
+
+    submittedCounts.set(
+      participant.id,
+      nonNegativeInteger(Number(participant.mistakeCount)),
+    );
+  }
 
   if (
+    nextPosition < 1 ||
+    submittedCounts.size !== participants.length ||
     !participants.some((participant) => participant.position === nextPosition)
   ) {
     return;
   }
 
-  await updateSubacCurrentPosition(supabase, subacSessionId, nextPosition);
-}
+  const finalCounts = participants.map((participant) => ({
+    participant,
+    mistakeCount: submittedCounts.get(participant.id),
+  }));
 
-/** Ends a Subac group session and shows the completed summary. */
-export async function endSubacSession(subacSessionId: string): Promise<void> {
-  await requireTeacher();
-  const supabase = await createClient();
-  await endSubacSessionRow(supabase, subacSessionId);
+  if (finalCounts.some(({ mistakeCount }) => mistakeCount === undefined)) {
+    return;
+  }
+
+  const totalMistakes = finalCounts.reduce(
+    (total, { mistakeCount }) => total + (mistakeCount ?? 0),
+    0,
+  );
+  const submittedTotal = nonNegativeInteger(Number(finalState.totalMistakes));
+
+  if (
+    totalMistakes !== submittedTotal ||
+    totalMistakes > session.max_mistakes_snapshot ||
+    totalMistakes < session.mistake_count ||
+    finalCounts.some(
+      ({ mistakeCount, participant }) =>
+        (mistakeCount ?? 0) < participant.mistake_count,
+    )
+  ) {
+    return;
+  }
+
+  await Promise.all(
+    finalCounts.map(({ mistakeCount, participant }) =>
+      updateSubacParticipantMistakeCount(
+        supabase,
+        participant.id,
+        subacSessionId,
+        mistakeCount ?? 0,
+      ),
+    ),
+  );
+  await endSubacSessionRow(supabase, subacSessionId, {
+    currentRotationPosition: nextPosition,
+    mistakeCount: totalMistakes,
+  });
 
   revalidatePath('/subac');
   revalidatePath(`/subac/${subacSessionId}`);
   redirect(`/subac/${subacSessionId}`);
+}
+
+/** Deletes an incorrect Subac session and its participant rows. */
+export async function deleteSubacSession(formData: FormData): Promise<void> {
+  await requireTeacher();
+  const { subacSessionId } = parseForm(formData, subacSessionIdSchema);
+  const supabase = await createClient();
+  await deleteSubacSessionRow(supabase, subacSessionId);
+
+  revalidatePath('/subac');
+  revalidatePath(`/subac/${subacSessionId}`);
+  redirect('/subac');
 }

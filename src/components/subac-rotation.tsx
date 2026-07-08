@@ -2,11 +2,7 @@
 
 import { clsx } from 'clsx';
 import { startTransition, useRef, useState } from 'react';
-import {
-  endSubacSession,
-  setSubacCurrentPosition,
-  setSubacMistakeCounts,
-} from '@/app/actions';
+import { deleteSubacSession, finishSubacSession } from '@/app/actions';
 import { dangerButtonClassName, secondaryButtonClassName } from './forms';
 
 type SubacRotationParticipant = {
@@ -43,34 +39,20 @@ export function SubacRotation({
     participants,
     totalMistakes: initialTotalMistakes,
   });
+  const stateRef = useRef<SubacRotationState>({
+    participants,
+    totalMistakes: initialTotalMistakes,
+  });
   const [currentPosition, setCurrentPosition] = useState(
     initialCurrentPosition,
   );
+  const currentPositionRef = useRef(initialCurrentPosition);
   const [isEnding, setIsEnding] = useState(false);
-  const [isAdvancing, setIsAdvancing] = useState(false);
-  const queue = useRef<Promise<void>>(Promise.resolve());
   const atMax = state.totalMistakes >= maxMistakes;
   const currentParticipant =
     state.participants.find(
       (participant) => participant.position === currentPosition,
     ) ?? state.participants[0];
-
-  function persistMistakes(
-    participantId: string,
-    participantMistakes: number,
-    totalMistakes: number,
-  ): void {
-    queue.current = queue.current
-      .then(() =>
-        setSubacMistakeCounts(
-          subacSessionId,
-          participantId,
-          participantMistakes,
-          totalMistakes,
-        ),
-      )
-      .catch(() => undefined);
-  }
 
   function addMistake(participantId: string): void {
     setState((current) => {
@@ -92,16 +74,13 @@ export function SubacRotation({
         };
       });
 
-      persistMistakes(
-        participantId,
-        nextParticipantMistakes,
-        nextTotalMistakes,
-      );
-
-      return {
+      const nextState = {
         participants: nextParticipants,
         totalMistakes: nextTotalMistakes,
       };
+
+      stateRef.current = nextState;
+      return nextState;
     });
   }
 
@@ -111,12 +90,7 @@ export function SubacRotation({
       currentPosition >= lastPosition ? 1 : currentPosition + 1;
 
     setCurrentPosition(nextPosition);
-    setIsAdvancing(true);
-    startTransition(() => {
-      void setSubacCurrentPosition(subacSessionId, nextPosition).finally(() => {
-        setIsAdvancing(false);
-      });
-    });
+    currentPositionRef.current = nextPosition;
   }
 
   function finish(): void {
@@ -125,9 +99,17 @@ export function SubacRotation({
     }
 
     setIsEnding(true);
+    const finalState = stateRef.current;
+    const finalCurrentPosition = currentPositionRef.current;
+
     startTransition(() => {
-      void queue.current.finally(() => {
-        void endSubacSession(subacSessionId);
+      void finishSubacSession(subacSessionId, {
+        currentPosition: finalCurrentPosition,
+        participants: finalState.participants.map((participant) => ({
+          id: participant.id,
+          mistakeCount: participant.mistakeCount,
+        })),
+        totalMistakes: finalState.totalMistakes,
       });
     });
   }
@@ -178,9 +160,6 @@ export function SubacRotation({
               }}
               type="button"
             >
-              <span className="absolute left-4 top-4 grid size-8 place-items-center rounded-full border border-current text-sm font-bold">
-                {participant.position}
-              </span>
               <span className="flex h-full flex-col items-center justify-center gap-2">
                 <span className="max-w-full text-wrap font-serif text-2xl font-semibold leading-tight">
                   {participant.name}
@@ -197,11 +176,11 @@ export function SubacRotation({
       <div className="grid gap-3 sm:grid-cols-2">
         <button
           className={secondaryButtonClassName}
-          disabled={isAdvancing || state.participants.length === 0}
+          disabled={state.participants.length === 0}
           onClick={advanceRotation}
           type="button"
         >
-          {isAdvancing ? 'Saving...' : 'Next Reciter'}
+          Next Reciter
         </button>
         <button
           className={dangerButtonClassName}
@@ -212,6 +191,12 @@ export function SubacRotation({
           {isEnding ? 'Finishing...' : 'Finish Subac'}
         </button>
       </div>
+      <form action={deleteSubacSession}>
+        <input name="subacSessionId" type="hidden" value={subacSessionId} />
+        <button className={`${dangerButtonClassName} w-full`} type="submit">
+          Delete Subac
+        </button>
+      </form>
     </section>
   );
 }

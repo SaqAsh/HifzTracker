@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { cardClassName, secondaryButtonClassName } from '@/components/forms';
+import { deleteSubacSession } from '@/app/actions';
+import {
+  cardClassName,
+  dangerButtonClassName,
+  secondaryButtonClassName,
+} from '@/components/forms';
 import { PageHeader } from '@/components/page-header';
 import { SubacRotation } from '@/components/subac-rotation';
 import { requireTeacher } from '@/lib/auth';
@@ -55,9 +60,6 @@ export default async function SubacSessionPage({
               key={participant.id}
             >
               <div>
-                <p className="text-sm font-bold text-sand">
-                  Order {participant.position}
-                </p>
                 <p className="font-serif text-2xl font-semibold text-teal">
                   {participant.student.name}
                 </p>
@@ -72,6 +74,12 @@ export default async function SubacSessionPage({
         <Link className={secondaryButtonClassName} href="/subac">
           Back to Subac
         </Link>
+        <form action={deleteSubacSession}>
+          <input name="subacSessionId" type="hidden" value={session.id} />
+          <button className={`${dangerButtonClassName} w-full`} type="submit">
+            Delete Subac
+          </button>
+        </form>
       </>
     );
   }

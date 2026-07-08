@@ -127,6 +127,14 @@ export async function insertSubacParticipants(
   expectOk(await db.from('subac_participants').insert(values));
 }
 
+/** Deletes a Subac session and its saved participants. */
+export async function deleteSubacSession(
+  db: DbClient,
+  id: string,
+): Promise<void> {
+  expectOk(await db.from('subac_sessions').delete().eq('id', id));
+}
+
 /** Persists the live total mistake count for an active Subac session. */
 export async function updateSubacSessionMistakeCount(
   db: DbClient,
@@ -177,11 +185,31 @@ export async function updateSubacCurrentPosition(
 export async function endSubacSession(
   db: DbClient,
   id: string,
+  values: {
+    currentRotationPosition?: number;
+    mistakeCount?: number;
+  } = {},
 ): Promise<SubacSession> {
+  const updateValues: {
+    current_rotation_position?: number;
+    ended_at: string;
+    mistake_count?: number;
+  } = {
+    ended_at: new Date().toISOString(),
+  };
+
+  if (values.currentRotationPosition !== undefined) {
+    updateValues.current_rotation_position = values.currentRotationPosition;
+  }
+
+  if (values.mistakeCount !== undefined) {
+    updateValues.mistake_count = values.mistakeCount;
+  }
+
   return unwrapSingle(
     await db
       .from('subac_sessions')
-      .update({ ended_at: new Date().toISOString() })
+      .update(updateValues)
       .eq('id', id)
       .select('*')
       .single(),

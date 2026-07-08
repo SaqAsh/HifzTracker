@@ -1,7 +1,7 @@
 'use client';
 
 import { startTransition, useRef, useState } from 'react';
-import { endSession, setMistakeCount } from '@/app/actions';
+import { endSession } from '@/app/actions';
 
 type UseMistakeCounter = {
   addMistake: () => void;
@@ -22,28 +22,22 @@ export function useMistakeCounter(
 ): UseMistakeCounter {
   const [count, setCount] = useState(initialCount);
   const [isEnding, setIsEnding] = useState(false);
-  const queue = useRef<Promise<void>>(Promise.resolve());
-
-  function persist(nextCount: number): void {
-    queue.current = queue.current
-      .then(() => setMistakeCount(sessionId, nextCount))
-      .catch(() => undefined);
-  }
+  const countRef = useRef(initialCount);
 
   function addMistake(): void {
     setCount((current) => {
       const nextCount = current + 1;
-      persist(nextCount);
+      countRef.current = nextCount;
       return nextCount;
     });
   }
 
   function finish(): void {
     setIsEnding(true);
+    const finalCount = countRef.current;
+
     startTransition(() => {
-      void queue.current.finally(() => {
-        void endSession(sessionId, count);
-      });
+      void endSession(sessionId, finalCount);
     });
   }
 
