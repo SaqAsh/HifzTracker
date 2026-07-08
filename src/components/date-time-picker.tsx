@@ -1,12 +1,20 @@
 'use client';
 
-import * as Popover from '@radix-ui/react-popover';
+import * as Dialog from '@radix-ui/react-dialog';
 import { clsx } from 'clsx';
-import { useId, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DayPicker } from 'react-day-picker';
-import { fieldClassName } from '@/components/forms';
-import { useDateTimePicker } from '@/hooks/use-date-time-picker';
-import { formatDate, formatTime } from '@/lib/dates';
+import {
+  fieldClassName,
+  primaryButtonClassName,
+  secondaryButtonClassName,
+} from '@/components/forms';
+import {
+  combineDateAndTime,
+  formatDate,
+  formatTime,
+  parseDateTimeParts,
+} from '@/lib/dates';
 
 type DateTimePickerProps = {
   defaultValue: string;
@@ -32,67 +40,108 @@ const DAY_PICKER_CLASS_NAMES = {
   weekday: 'h-8 text-xs font-bold uppercase text-sand',
 };
 
-/** Themed date/time picker using the shadcn-style Popover + Calendar shape. */
+/** Mobile-first date/time picker using a themed modal calendar sheet. */
 export function DateTimePicker({
   defaultValue,
   name,
 }: DateTimePickerProps): React.JSX.Element {
-  const { date, setDate, setTime, time, value } =
-    useDateTimePicker(defaultValue);
+  const initialParts = useMemo(
+    () => parseDateTimeParts(defaultValue),
+    [defaultValue],
+  );
   const [isOpen, setIsOpen] = useState(false);
-  const labelId = useId();
+  const [date, setDate] = useState(initialParts.date);
+  const [time, setTime] = useState(initialParts.time);
+  const [draftDate, setDraftDate] = useState(initialParts.date);
+  const [draftTime, setDraftTime] = useState(initialParts.time);
+  const value = combineDateAndTime(date, time);
+  const draftValue = combineDateAndTime(draftDate, draftTime);
+
+  function handleOpenChange(nextOpen: boolean): void {
+    if (nextOpen) {
+      setDraftDate(date);
+      setDraftTime(time);
+    }
+
+    setIsOpen(nextOpen);
+  }
+
+  function saveDraft(): void {
+    setDate(draftDate);
+    setTime(draftTime);
+    setIsOpen(false);
+  }
 
   return (
     <div>
       <input name={name} type="hidden" value={value} />
-      <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
-        <Popover.Trigger
-          aria-labelledby={labelId}
-          className={clsx(
-            fieldClassName,
-            'flex items-center justify-between gap-3 text-left font-semibold text-teal',
-          )}
-          type="button"
-        >
-          <span id={labelId} className="min-w-0 truncate">
-            {formatDate(value.slice(0, 10))} · {formatTime(value)}
-          </span>
-          <svg
-            aria-hidden="true"
-            className="h-5 w-5 shrink-0 text-sand"
-            fill="none"
-            viewBox="0 0 20 20"
-          >
-            <path
-              d="M5 7.5 10 12.5 15 7.5"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
-            align="start"
-            avoidCollisions
+      <Dialog.Root open={isOpen} onOpenChange={handleOpenChange}>
+        <Dialog.Trigger asChild>
+          <button
             className={clsx(
-              'z-50 grid max-w-[calc(100vw-2rem)] gap-3 rounded-[2rem]',
-              'border border-teal/15 bg-cream p-3 text-ink shadow-xl shadow-teal/10',
+              fieldClassName,
+              'flex items-center justify-between gap-3 text-left font-semibold text-teal',
             )}
-            collisionPadding={12}
-            sideOffset={8}
+            type="button"
           >
+            <span className="min-w-0 truncate">
+              {formatDate(value.slice(0, 10))} · {formatTime(value)}
+            </span>
+            <svg
+              aria-hidden="true"
+              className="h-5 w-5 shrink-0 text-sand"
+              fill="none"
+              viewBox="0 0 20 20"
+            >
+              <path
+                d="M5 7.5 10 12.5 15 7.5"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
+          </button>
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="fixed inset-0 z-40 bg-teal/25 backdrop-blur-sm" />
+          <Dialog.Content
+            className={clsx(
+              'fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-50',
+              'mx-auto grid max-h-[calc(100dvh-1.5rem)] gap-3 overflow-y-auto rounded-[2rem]',
+              'border border-teal/15 bg-cream p-4 text-ink shadow-xl shadow-teal/15',
+              'sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[min(26rem,calc(100vw-2rem))] sm:-translate-x-1/2 sm:-translate-y-1/2',
+            )}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <Dialog.Title className="font-serif text-2xl font-semibold text-teal">
+                  Pick Date & Time
+                </Dialog.Title>
+                <Dialog.Description className="mt-1 text-sm font-semibold text-ink/60">
+                  {formatDate(draftValue.slice(0, 10))} ·{' '}
+                  {formatTime(draftValue)}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close
+                aria-label="Close date picker"
+                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-teal/20 text-xl font-bold text-teal"
+                type="button"
+              >
+                ×
+              </Dialog.Close>
+            </div>
+
             <DayPicker
               classNames={DAY_PICKER_CLASS_NAMES}
-              defaultMonth={date}
+              defaultMonth={draftDate}
               mode="single"
               onSelect={(selectedDate) => {
                 if (selectedDate) {
-                  setDate(selectedDate);
+                  setDraftDate(selectedDate);
                 }
               }}
-              selected={date}
+              selected={draftDate}
             />
 
             <label className="grid gap-2 border-t border-teal/10 pt-3">
@@ -100,26 +149,29 @@ export function DateTimePicker({
               <input
                 className={fieldClassName}
                 onChange={(event) => {
-                  setTime(event.target.value);
+                  setDraftTime(event.target.value);
                 }}
                 required
                 type="time"
-                value={time}
+                value={draftTime}
               />
             </label>
 
-            <button
-              className="tap-target rounded-2xl bg-teal px-5 py-3 text-sm font-bold text-cream transition hover:bg-teal/90"
-              onClick={() => {
-                setIsOpen(false);
-              }}
-              type="button"
-            >
-              Done
-            </button>
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <Dialog.Close className={secondaryButtonClassName} type="button">
+                Cancel
+              </Dialog.Close>
+              <button
+                className={primaryButtonClassName}
+                onClick={saveDraft}
+                type="button"
+              >
+                Done
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </div>
   );
 }
