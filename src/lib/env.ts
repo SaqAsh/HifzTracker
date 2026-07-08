@@ -33,7 +33,7 @@ export function supabaseSecretKey(): string {
   );
 }
 
-/** Public site URL used for auth redirects, defaulting to localhost. */
+/** Public site URL used for generated metadata, defaulting to localhost. */
 export function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? DEFAULT_SITE_URL;
 }

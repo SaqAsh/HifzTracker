@@ -2,10 +2,8 @@
 
 import { randomInt } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { requireTeacher } from '@/lib/auth';
-import { siteUrl } from '@/lib/env';
 import {
   completeLesson as completeLessonRow,
   deleteLesson as deleteLessonRow,
@@ -39,7 +37,6 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import {
   createStudentSchema,
   credentialsSchema,
-  emailSchema,
   lessonIdSchema,
   parseCreateLesson,
   parseCreateSubac,
@@ -96,28 +93,6 @@ export async function signInTeacher(formData: FormData): Promise<void> {
   }
 
   redirect('/lessons');
-}
-
-/** Sends a passwordless student magic link. */
-export async function sendStudentMagicLink(formData: FormData): Promise<void> {
-  const { email } = parseForm(formData, emailSchema);
-  const supabase = await createClient();
-  const requestHeaders = await headers();
-  const origin = requestHeaders.get('origin') ?? siteUrl();
-
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: `${origin}/auth/callback?next=/student`,
-      shouldCreateUser: true,
-    },
-  });
-
-  if (error) {
-    redirect('/student/login?error=invalid');
-  }
-
-  redirect('/student/login?sent=1');
 }
 
 /** Signs a student in with email and password. */

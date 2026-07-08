@@ -41,8 +41,6 @@ export const credentialsSchema = z.object({
   password: requiredText,
 });
 
-export const emailSchema = z.object({ email });
-
 export const createStudentSchema = z.object({
   email,
   name: requiredText,
