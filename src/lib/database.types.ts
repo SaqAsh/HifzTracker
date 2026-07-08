@@ -262,6 +262,7 @@ export type SubacParticipant =
 export type StudentInsert = Database['public']['Tables']['students']['Insert'];
 export type StudentUpdate = Database['public']['Tables']['students']['Update'];
 export type LessonInsert = Database['public']['Tables']['lessons']['Insert'];
+export type LessonUpdate = Database['public']['Tables']['lessons']['Update'];
 export type SessionInsert = Database['public']['Tables']['sessions']['Insert'];
 export type SubacSessionInsert =
   Database['public']['Tables']['subac_sessions']['Insert'];

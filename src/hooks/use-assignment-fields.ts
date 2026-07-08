@@ -3,15 +3,24 @@
 import { useMemo, useState } from 'react';
 import { getSurah, type Surah } from '@/lib/quran';
 
+type AssignmentType = 'lesson' | 'revision';
+type RevisionMode = 'hizb' | 'juz' | 'surah_range';
+
+export type AssignmentFieldDefaults = {
+  assignment_type?: AssignmentType | null;
+  lesson_surah_number?: null | number;
+  revision_mode?: null | RevisionMode;
+};
+
 type SelectOption = {
   label: string;
   value: string;
 };
 
 type UseAssignmentFields = {
-  assignmentType: string;
+  assignmentType: AssignmentType;
   ayahOptions: SelectOption[];
-  revisionMode: string;
+  revisionMode: RevisionMode;
   selectedSurah: null | Surah;
   setAssignmentType: (value: string) => void;
   setLessonSurahNumber: (value: string) => void;
@@ -19,10 +28,18 @@ type UseAssignmentFields = {
 };
 
 /** Tracks lesson/revision selection state and derived ayah options. */
-export function useAssignmentFields(): UseAssignmentFields {
-  const [assignmentType, setAssignmentType] = useState('lesson');
-  const [lessonSurahNumber, setLessonSurahNumber] = useState('');
-  const [revisionMode, setRevisionMode] = useState('juz');
+export function useAssignmentFields(
+  defaults: AssignmentFieldDefaults = {},
+): UseAssignmentFields {
+  const [assignmentType, setAssignmentType] = useState<AssignmentType>(
+    defaults.assignment_type ?? 'lesson',
+  );
+  const [lessonSurahNumber, setLessonSurahNumber] = useState(
+    defaults.lesson_surah_number ? String(defaults.lesson_surah_number) : '',
+  );
+  const [revisionMode, setRevisionMode] = useState<RevisionMode>(
+    defaults.revision_mode ?? 'juz',
+  );
 
   const selectedSurah = useMemo(
     () => getSurah(lessonSurahNumber ? Number(lessonSurahNumber) : null),
@@ -45,8 +62,17 @@ export function useAssignmentFields(): UseAssignmentFields {
     ayahOptions,
     revisionMode,
     selectedSurah,
-    setAssignmentType,
+    setAssignmentType: (value) => {
+      setAssignmentType(value === 'revision' ? 'revision' : 'lesson');
+    },
     setLessonSurahNumber,
-    setRevisionMode,
+    setRevisionMode: (value) => {
+      if (value === 'hizb' || value === 'surah_range') {
+        setRevisionMode(value);
+        return;
+      }
+
+      setRevisionMode('juz');
+    },
   };
 }

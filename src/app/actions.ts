@@ -11,6 +11,7 @@ import {
   getLesson,
   insertLesson,
   setLessonStatus,
+  updateLesson as updateLessonRow,
 } from '@/lib/data/lessons';
 import {
   endSession as endSessionRow,
@@ -46,6 +47,7 @@ import {
   parseCreateLesson,
   parseCreateSubac,
   parseForm,
+  parseUpdateLesson,
   settingsSchema,
   studentIdSchema,
   updateStudentSchema,
@@ -282,6 +284,27 @@ export async function createLesson(formData: FormData): Promise<void> {
   });
 
   revalidatePath('/lessons');
+  revalidatePath(`/students/${studentId}`);
+  redirectBack(formData, '/lessons');
+}
+
+/** Updates an existing scheduled lesson. */
+export async function updateLesson(formData: FormData): Promise<void> {
+  await requireTeacher();
+  const { assignment, lessonId, maxMistakes, scheduledAt, studentId } =
+    parseUpdateLesson(formData);
+  const supabase = await createClient();
+  const previousLesson = await getLesson(supabase, lessonId);
+  const lesson = await updateLessonRow(supabase, lessonId, {
+    ...assignment,
+    max_mistakes: maxMistakes,
+    scheduled_at: new Date(scheduledAt).toISOString(),
+    student_id: studentId,
+  });
+
+  revalidatePath('/lessons');
+  revalidatePath(`/students/${previousLesson.student_id}`);
+  revalidatePath(`/students/${lesson.student_id}`);
   redirectBack(formData, '/lessons');
 }
 
@@ -291,8 +314,10 @@ export async function updateLessonStatus(formData: FormData): Promise<void> {
   const { lessonId, status } = parseForm(formData, lessonStatusSchema);
   const supabase = await createClient();
   await setLessonStatus(supabase, lessonId, status);
+  const lesson = await getLesson(supabase, lessonId);
 
   revalidatePath('/lessons');
+  revalidatePath(`/students/${lesson.student_id}`);
   redirectBack(formData, '/lessons');
 }
 
@@ -353,6 +378,7 @@ export async function endSession(
 
   if (session.lesson_id) {
     await completeLesson(supabase, session.lesson_id);
+    revalidatePath('/lessons');
   }
 
   revalidatePath(`/students/${session.student_id}`);

@@ -5,6 +5,7 @@ import {
   dangerButtonClassName,
   secondaryButtonClassName,
 } from '@/components/forms';
+import { StudentPrefetchLink } from '@/components/student-prefetch-link';
 import type { Student } from '@/lib/database.types';
 import { daysSince, formatDate } from '@/lib/dates';
 import { STUDENT_STATUS } from '@/lib/statuses';
@@ -19,12 +20,12 @@ export function StudentCard({
     <article className={cardClassName}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <Link
+          <StudentPrefetchLink
             className="font-serif text-2xl font-semibold text-teal"
             href={`/students/${student.id}`}
           >
             {student.name}
-          </Link>
+          </StudentPrefetchLink>
           <p className="text-sm text-ink/60">{student.email}</p>
           <p className="mt-2 text-sm font-semibold text-ink">
             {daysSince(student.start_date)} days as student

@@ -86,6 +86,10 @@ const lessonScheduleSchema = z.object({
   studentId: requiredText,
 });
 
+const updateLessonSchema = lessonScheduleSchema.extend({
+  lessonId: requiredText,
+});
+
 export type AssignmentColumns = {
   assignment_type: 'lesson' | 'revision';
   lesson_ayah_from: null | number;
@@ -260,6 +264,19 @@ export function parseCreateLesson(formData: FormData): CreateLessonInput {
   const data = Object.fromEntries(formData);
   return {
     ...lessonScheduleSchema.parse(data),
+    assignment: assignmentSchema.parse(data),
+  };
+}
+
+export type UpdateLessonInput = z.infer<typeof updateLessonSchema> & {
+  assignment: AssignmentColumns;
+};
+
+/** Parses the combined schedule + assignment payload for an existing lesson. */
+export function parseUpdateLesson(formData: FormData): UpdateLessonInput {
+  const data = Object.fromEntries(formData);
+  return {
+    ...updateLessonSchema.parse(data),
     assignment: assignmentSchema.parse(data),
   };
 }

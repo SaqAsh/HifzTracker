@@ -1,9 +1,10 @@
-import Link from 'next/link';
 import { assignmentSummaryClassName, cardClassName } from '@/components/forms';
+import { LessonEditPanel } from '@/components/lesson-edit-panel';
 import {
   LessonStatusActions,
   StartSessionButton,
 } from '@/components/lesson-actions';
+import { StudentPrefetchLink } from '@/components/student-prefetch-link';
 import type { Lesson } from '@/lib/database.types';
 import { formatDateTime, formatTime } from '@/lib/dates';
 import { formatAssignmentSummary } from '@/lib/quran';
@@ -12,6 +13,7 @@ type LessonCardShellProps = {
   header: React.ReactNode;
   lesson: Lesson;
   returnTo: string;
+  students?: { id: string; name: string }[];
 };
 
 /** Shared lesson card layout: header, start control, summary, status actions. */
@@ -19,6 +21,7 @@ function LessonCardShell({
   header,
   lesson,
   returnTo,
+  students,
 }: LessonCardShellProps): React.JSX.Element {
   return (
     <article className={cardClassName}>
@@ -29,6 +32,7 @@ function LessonCardShell({
       <p className={assignmentSummaryClassName}>
         {formatAssignmentSummary(lesson)}
       </p>
+      <LessonEditPanel lesson={lesson} returnTo={returnTo} students={students} />
       <LessonStatusActions lessonId={lesson.id} returnTo={returnTo} />
     </article>
   );
@@ -65,6 +69,7 @@ export function LessonCard({
 type RosterLessonCardProps = {
   lesson: Lesson;
   returnTo: string;
+  students: { id: string; name: string }[];
   studentHref: string;
   studentName: string;
 };
@@ -73,6 +78,7 @@ type RosterLessonCardProps = {
 export function RosterLessonCard({
   lesson,
   returnTo,
+  students,
   studentHref,
   studentName,
 }: RosterLessonCardProps): React.JSX.Element {
@@ -83,12 +89,12 @@ export function RosterLessonCard({
           <p className="text-sm font-bold text-sand">
             {formatTime(lesson.scheduled_at)}
           </p>
-          <Link
+          <StudentPrefetchLink
             className="font-serif text-2xl font-semibold text-teal"
             href={studentHref}
           >
             {studentName}
-          </Link>
+          </StudentPrefetchLink>
           <p className="mt-1 text-sm text-ink/60">
             {lesson.max_mistakes} mistakes allowed
           </p>
@@ -99,6 +105,7 @@ export function RosterLessonCard({
       }
       lesson={lesson}
       returnTo={returnTo}
+      students={students}
     />
   );
 }

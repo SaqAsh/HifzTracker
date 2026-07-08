@@ -1,6 +1,11 @@
 import type { DbClient } from '@/lib/data/client';
 import { expectOk, unwrapList, unwrapSingle } from '@/lib/data/unwrap';
-import type { Lesson, LessonInsert, LessonStatus } from '@/lib/database.types';
+import type {
+  Lesson,
+  LessonInsert,
+  LessonStatus,
+  LessonUpdate,
+} from '@/lib/database.types';
 import { LESSON_STATUS } from '@/lib/statuses';
 
 /** Lists lessons for a set of students, ordered by schedule. */
@@ -49,6 +54,17 @@ export async function insertLesson(
   values: LessonInsert,
 ): Promise<void> {
   expectOk(await db.from('lessons').insert(values));
+}
+
+/** Updates a scheduled lesson and returns the persisted row. */
+export async function updateLesson(
+  db: DbClient,
+  id: string,
+  values: LessonUpdate,
+): Promise<Lesson> {
+  return unwrapSingle(
+    await db.from('lessons').update(values).eq('id', id).select('*').single(),
+  );
 }
 
 /** Updates a lesson's status by id. */

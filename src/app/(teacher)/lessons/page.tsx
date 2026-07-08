@@ -58,6 +58,7 @@ export default async function LessonsPage(): Promise<React.JSX.Element> {
                   key={lesson.id}
                   lesson={lesson}
                   returnTo="/lessons"
+                  students={students}
                   studentHref={`/students/${lesson.student_id}`}
                   studentName={lesson.studentName}
                 />

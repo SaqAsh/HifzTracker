@@ -29,16 +29,17 @@ export default async function StudentDetailPage({
   const { settings } = await requireTeacher();
   const { id } = await params;
   const supabase = await createClient();
-  const student = await getStudent(supabase, id);
+  const [student, lessons, sessions] = await Promise.all([
+    getStudent(supabase, id),
+    listLessonsForStudent(supabase, id, {
+      ascending: false,
+    }),
+    listSessionsForStudent(supabase, id),
+  ]);
 
   if (!student) {
     notFound();
   }
-
-  const lessons = await listLessonsForStudent(supabase, student.id, {
-    ascending: false,
-  });
-  const sessions = await listSessionsForStudent(supabase, student.id);
 
   const upcomingLessons = lessons
     .filter((lesson) => isUpcomingLesson(lesson))
