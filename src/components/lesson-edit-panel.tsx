@@ -19,10 +19,14 @@ type StudentOption = {
 };
 
 type LessonEditPanelProps = {
+  editButtonClassName?: string;
   lesson: Lesson;
   returnTo: string;
   students?: StudentOption[];
 };
+
+const defaultEditButtonClassName =
+  'absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-teal/15 bg-cream text-teal shadow-sm transition hover:bg-teal/10';
 
 function EditIcon(): React.JSX.Element {
   return (
@@ -44,6 +48,7 @@ function EditIcon(): React.JSX.Element {
 
 /** Lazily renders the full lesson edit form from a lesson card. */
 export function LessonEditPanel({
+  editButtonClassName,
   lesson,
   returnTo,
   students,
@@ -54,7 +59,7 @@ export function LessonEditPanel({
     return (
       <button
         aria-label="Edit lesson"
-        className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-teal/15 bg-cream text-teal shadow-sm transition hover:bg-teal/10"
+        className={editButtonClassName ?? defaultEditButtonClassName}
         onClick={() => {
           setIsEditing(true);
         }}
@@ -104,9 +109,7 @@ export function LessonEditPanel({
         <div className="grid gap-3">
           <Field label="Date/time">
             <DateTimePicker
-              defaultValue={toDateTimeLocalValue(
-                new Date(lesson.scheduled_at),
-              )}
+              defaultValue={toDateTimeLocalValue(new Date(lesson.scheduled_at))}
               name="scheduledAt"
             />
           </Field>

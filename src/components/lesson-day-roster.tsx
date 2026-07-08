@@ -58,8 +58,8 @@ function groupLessonsByStudent(
   return Array.from(groups.values());
 }
 
-function formatLessonCount(count: number): string {
-  return count === 1 ? '1 lesson' : `${count} lessons`;
+function formatItemCount(count: number): string {
+  return count === 1 ? '1 item' : `${count} items`;
 }
 
 function formatGroupTimeSummary(lessons: LessonWithStudent[]): string {
@@ -101,7 +101,7 @@ function StudentLessonGroupCard({
 
         <button
           aria-expanded={isOpen}
-          aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.studentName} lessons`}
+          aria-label={`${isOpen ? 'Collapse' : 'Expand'} ${group.studentName} items`}
           className="tap-target grid shrink-0 justify-items-end gap-2 rounded-2xl text-right outline-none focus-visible:ring-4 focus-visible:ring-teal/10"
           onClick={() => {
             setIsOpen((current) => !current);
@@ -109,15 +109,23 @@ function StudentLessonGroupCard({
           type="button"
         >
           <span className="rounded-full border border-teal/15 bg-cream px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal">
-            {formatLessonCount(group.lessons.length)}
+            {formatItemCount(group.lessons.length)}
           </span>
           <span
             aria-hidden="true"
             className={`grid h-8 w-8 place-items-center rounded-full border border-teal/15 text-xl leading-none text-teal transition ${
-              isOpen ? 'rotate-45' : ''
+              isOpen ? 'rotate-180' : ''
             }`}
           >
-            +
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20">
+              <path
+                d="M5 7.5 10 12.5 15 7.5"
+                stroke="currentColor"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+              />
+            </svg>
           </span>
         </button>
       </div>
@@ -125,8 +133,8 @@ function StudentLessonGroupCard({
       {isOpen ? (
         <ol className="mt-3 divide-y divide-teal/10 border-t border-teal/10">
           {group.lessons.map((lesson) => (
-            <li className="relative py-3 pr-12" key={lesson.id}>
-              <div className="grid gap-3 sm:grid-cols-[6rem_minmax(0,1fr)_8rem] sm:items-start">
+            <li className="relative py-3 pr-11" key={lesson.id}>
+              <div className="grid gap-3 sm:grid-cols-[6rem_minmax(0,1fr)] sm:items-start">
                 <div>
                   <p className="text-sm font-bold text-sand">
                     {formatTime(lesson.scheduled_at)}
@@ -145,10 +153,13 @@ function StudentLessonGroupCard({
                   </p>
                 </div>
 
-                <StartSessionButton lessonId={lesson.id} />
+                <div className="sm:col-span-2">
+                  <StartSessionButton lessonId={lesson.id} />
+                </div>
               </div>
 
               <LessonEditPanel
+                editButtonClassName="absolute right-0 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-teal/15 bg-cream text-teal shadow-sm transition hover:bg-teal/10"
                 lesson={lesson}
                 returnTo={returnTo}
                 students={students}
@@ -209,9 +220,9 @@ export function LessonDayRoster({
 
   return (
     <div className="grid gap-3">
-      {groups.map((group, index) => (
+      {groups.map((group) => (
         <StudentLessonGroupCard
-          defaultOpen={index < 3 || group.lessons.length === 1}
+          defaultOpen={false}
           group={group}
           key={group.studentId}
           returnTo={returnTo}

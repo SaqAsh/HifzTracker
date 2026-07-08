@@ -32,9 +32,17 @@ export function ScheduleLessonForm({
         </h2>
         <span
           aria-hidden="true"
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-teal/15 text-2xl leading-none text-teal transition group-open:rotate-45"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-teal/15 text-teal transition group-open:rotate-180"
         >
-          +
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 20 20">
+            <path
+              d="M5 7.5 10 12.5 15 7.5"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+            />
+          </svg>
         </span>
       </summary>
       <form action={createLesson} className="mt-4 grid gap-4">
