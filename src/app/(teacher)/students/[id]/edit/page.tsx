@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { archiveStudent, updateStudent } from '@/app/actions';
+import { ConfirmSubmitButton } from '@/components/confirm-submit-button';
 import {
   Field,
   dangerButtonClassName,
@@ -105,9 +106,12 @@ export default async function EditStudentPage({
       {student.status === STUDENT_STATUS.INACTIVE ? null : (
         <form action={archiveStudent}>
           <input name="studentId" type="hidden" value={student.id} />
-          <button className={dangerButtonClassName} type="submit">
+          <ConfirmSubmitButton
+            className={dangerButtonClassName}
+            message={`Archive ${student.name}?`}
+          >
             Archive Student
-          </button>
+          </ConfirmSubmitButton>
         </form>
       )}
     </>

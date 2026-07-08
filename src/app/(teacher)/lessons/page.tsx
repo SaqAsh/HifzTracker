@@ -1,6 +1,6 @@
 import { signOut } from '@/app/actions';
 import { emptyStateClassName } from '@/components/forms';
-import { RosterLessonCard } from '@/components/lesson-card';
+import { LessonDayRoster } from '@/components/lesson-day-roster';
 import { PageHeader } from '@/components/page-header';
 import { ScheduleLessonForm } from '@/components/schedule-lesson-form';
 import { requireTeacher } from '@/lib/auth';
@@ -19,7 +19,11 @@ export default async function LessonsPage(): Promise<React.JSX.Element> {
     supabase,
     students.map((student) => student.id),
   );
-  const groupedLessons = groupByDay(attachStudentNames(lessons, students));
+  const lessonsWithStudentNames = attachStudentNames(lessons, students);
+  const groupedLessons = groupByDay(lessonsWithStudentNames);
+  const prefetchStudentIds = Array.from(
+    new Set(lessonsWithStudentNames.map((lesson) => lesson.student_id)),
+  ).slice(0, 4);
 
   return (
     <>
@@ -53,16 +57,12 @@ export default async function LessonsPage(): Promise<React.JSX.Element> {
                 </h2>
                 <div className="h-px flex-1 bg-teal/20" />
               </div>
-              {dayLessons.map((lesson) => (
-                <RosterLessonCard
-                  key={lesson.id}
-                  lesson={lesson}
-                  returnTo="/lessons"
-                  students={students}
-                  studentHref={`/students/${lesson.student_id}`}
-                  studentName={lesson.studentName}
-                />
-              ))}
+              <LessonDayRoster
+                lessons={dayLessons}
+                prefetchStudentIds={prefetchStudentIds}
+                returnTo="/lessons"
+                students={students}
+              />
             </div>
           ))
         )}

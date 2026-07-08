@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { deleteSubacSession } from '@/app/actions';
+import { ConfirmSubmitButton } from '@/components/confirm-submit-button';
 import {
   cardClassName,
   dangerButtonClassName,
@@ -59,8 +60,8 @@ export default async function SubacSessionPage({
               className={`${cardClassName} flex items-center justify-between gap-4`}
               key={participant.id}
             >
-              <div>
-                <p className="font-serif text-2xl font-semibold text-teal">
+              <div className="min-w-0">
+                <p className="break-words font-serif text-2xl font-semibold text-teal">
                   {participant.student.name}
                 </p>
               </div>
@@ -76,9 +77,12 @@ export default async function SubacSessionPage({
         </Link>
         <form action={deleteSubacSession}>
           <input name="subacSessionId" type="hidden" value={session.id} />
-          <button className={dangerButtonClassName} type="submit">
+          <ConfirmSubmitButton
+            className={dangerButtonClassName}
+            message="Delete this completed Subac session?"
+          >
             Delete Subac
-          </button>
+          </ConfirmSubmitButton>
         </form>
       </>
     );

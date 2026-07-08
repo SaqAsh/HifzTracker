@@ -25,10 +25,18 @@ export function ScheduleLessonForm({
   studentId,
 }: ScheduleLessonFormProps): React.JSX.Element {
   return (
-    <section className={panelClassName}>
-      <h2 className="font-serif text-2xl font-semibold text-teal">
-        Schedule Lesson
-      </h2>
+    <details className={`${panelClassName} group`}>
+      <summary className="-m-2 flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl p-2 outline-none transition hover:bg-teal/5 focus-visible:ring-4 focus-visible:ring-teal/10 [&::-webkit-details-marker]:hidden">
+        <h2 className="font-serif text-2xl font-semibold text-teal">
+          Schedule Lesson
+        </h2>
+        <span
+          aria-hidden="true"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-teal/15 text-2xl leading-none text-teal transition group-open:rotate-45"
+        >
+          +
+        </span>
+      </summary>
       <form action={createLesson} className="mt-4 grid gap-4">
         <input name="returnTo" type="hidden" value={returnTo} />
         {studentId ? (
@@ -68,6 +76,6 @@ export function ScheduleLessonForm({
           Add Lesson
         </button>
       </form>
-    </section>
+    </details>
   );
 }

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { archiveStudent } from '@/app/actions';
+import { ConfirmSubmitButton } from '@/components/confirm-submit-button';
 import {
   cardClassName,
   dangerButtonClassName,
@@ -19,14 +20,14 @@ export function StudentCard({
   return (
     <article className={cardClassName}>
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <StudentPrefetchLink
-            className="font-serif text-2xl font-semibold text-teal"
+            className="block break-words font-serif text-2xl font-semibold text-teal"
             href={`/students/${student.id}`}
           >
             {student.name}
           </StudentPrefetchLink>
-          <p className="text-sm text-ink/60">{student.email}</p>
+          <p className="break-words text-sm text-ink/60">{student.email}</p>
           <p className="mt-2 text-sm font-semibold text-ink">
             {daysSince(student.start_date)} days as student
           </p>
@@ -34,7 +35,7 @@ export function StudentCard({
             Started {formatDate(student.start_date)}
           </p>
         </div>
-        <span className="rounded-full bg-sand/35 px-3 py-1 text-xs font-bold uppercase tracking-wide text-maroon">
+        <span className="shrink-0 rounded-full bg-sand/35 px-3 py-1 text-xs font-bold uppercase tracking-wide text-maroon">
           {student.status}
         </span>
       </div>
@@ -48,9 +49,12 @@ export function StudentCard({
         {student.status === STUDENT_STATUS.INACTIVE ? null : (
           <form action={archiveStudent}>
             <input name="studentId" type="hidden" value={student.id} />
-            <button className={dangerButtonClassName} type="submit">
+            <ConfirmSubmitButton
+              className={dangerButtonClassName}
+              message={`Archive ${student.name}?`}
+            >
               Archive
-            </button>
+            </ConfirmSubmitButton>
           </form>
         )}
       </div>

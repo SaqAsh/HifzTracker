@@ -15,15 +15,15 @@ export function SubacSessionCard({
     <article className={cardClassName}>
       <Link className="block" href={`/subac/${session.id}`}>
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="font-serif text-2xl font-semibold text-teal">
+          <div className="min-w-0">
+            <p className="break-words font-serif text-2xl font-semibold text-teal">
               {session.portion_label}
             </p>
             <p className="mt-1 text-sm text-ink/60">
               {formatDateTime(session.started_at)}
             </p>
           </div>
-          <span className="rounded-full border border-teal/15 bg-cream px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal">
+          <span className="shrink-0 rounded-full border border-teal/15 bg-cream px-3 py-1 text-xs font-bold uppercase tracking-wide text-teal">
             {session.ended_at ? 'Done' : 'Live'}
           </span>
         </div>

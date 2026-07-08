@@ -2,7 +2,7 @@
 
 import * as Popover from '@radix-ui/react-popover';
 import { clsx } from 'clsx';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { fieldClassName } from '@/components/forms';
 import { useDateTimePicker } from '@/hooks/use-date-time-picker';
@@ -39,12 +39,13 @@ export function DateTimePicker({
 }: DateTimePickerProps): React.JSX.Element {
   const { date, setDate, setTime, time, value } =
     useDateTimePicker(defaultValue);
+  const [isOpen, setIsOpen] = useState(false);
   const labelId = useId();
 
   return (
     <div className="grid gap-3">
       <input name={name} type="hidden" value={value} />
-      <Popover.Root>
+      <Popover.Root open={isOpen} onOpenChange={setIsOpen}>
         <Popover.Trigger
           aria-labelledby={labelId}
           className={clsx(
@@ -72,9 +73,14 @@ export function DateTimePicker({
             <DayPicker
               classNames={DAY_PICKER_CLASS_NAMES}
               mode="single"
+              onDayClick={(selectedDate) => {
+                setDate(selectedDate);
+                setIsOpen(false);
+              }}
               onSelect={(selectedDate) => {
                 if (selectedDate) {
                   setDate(selectedDate);
+                  setIsOpen(false);
                 }
               }}
               selected={date}

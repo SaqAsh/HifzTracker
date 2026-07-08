@@ -13,21 +13,21 @@ export function PageHeader({
   trailing,
 }: PageHeaderProps): React.JSX.Element {
   return (
-    <header className="flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
+    <header className="flex items-start justify-between gap-4">
+      <div className="flex min-w-0 items-center gap-3">
         <AppLogo />
-        <div>
+        <div className="min-w-0">
           {eyebrow ? (
             <p className="text-xs font-bold uppercase tracking-[0.22em] text-sand">
               {eyebrow}
             </p>
           ) : null}
-          <h1 className="font-serif text-3xl font-semibold tracking-tight text-teal">
+          <h1 className="break-words font-serif text-3xl font-semibold tracking-tight text-teal">
             {title}
           </h1>
         </div>
       </div>
-      {trailing}
+      <div className="shrink-0">{trailing}</div>
     </header>
   );
 }

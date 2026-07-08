@@ -27,30 +27,37 @@ export function UiSelect({
   placeholder = 'Choose one',
   value,
 }: UiSelectProps): React.JSX.Element {
+  const [isOpen, setIsOpen] = useState(false);
   const [internalValue, setInternalValue] = useState(defaultValue ?? '');
   const selectedValue = value ?? internalValue;
 
   function handleValueChange(nextValue: string): void {
     setInternalValue(nextValue);
     onValueChange?.(nextValue);
+    setIsOpen(false);
   }
 
   return (
     <SelectPrimitive.Root
+      open={isOpen}
+      onOpenChange={setIsOpen}
       value={selectedValue}
       onValueChange={handleValueChange}
     >
       <input type="hidden" name={name} value={selectedValue} />
       <SelectPrimitive.Trigger
         className={clsx(
-          'flex min-h-12 w-full items-center justify-between rounded-2xl',
+          'flex min-h-12 w-full min-w-0 items-center justify-between gap-3 rounded-2xl',
           'border border-teal/15 bg-cream px-4 text-left text-base text-ink',
           'outline-none transition focus:border-teal focus:ring-4 focus:ring-teal/10',
           'data-[placeholder]:text-ink/40',
         )}
       >
-        <SelectPrimitive.Value placeholder={placeholder} />
-        <SelectPrimitive.Icon aria-hidden="true" className="ml-3 text-teal">
+        <SelectPrimitive.Value
+          className="min-w-0 truncate"
+          placeholder={placeholder}
+        />
+        <SelectPrimitive.Icon aria-hidden="true" className="shrink-0 text-teal">
           <svg viewBox="0 0 20 20" fill="none" className="h-5 w-5">
             <path
               d="M5 7.5 10 12.5 15 7.5"
@@ -77,16 +84,19 @@ export function UiSelect({
                 key={option.value}
                 value={option.value}
                 className={clsx(
-                  'relative flex min-h-11 cursor-pointer select-none items-center',
+                  'relative flex min-h-11 min-w-0 cursor-pointer select-none items-center',
                   'rounded-2xl px-10 py-2 text-base outline-none transition',
                   'data-[highlighted]:bg-teal data-[highlighted]:text-cream',
                   'data-[state=checked]:bg-sand/30 data-[state=checked]:text-maroon',
                 )}
+                onSelect={() => {
+                  setIsOpen(false);
+                }}
               >
                 <SelectPrimitive.ItemIndicator className="absolute left-3 grid h-5 w-5 place-items-center">
                   <span className="h-2.5 w-2.5 rounded-full bg-current" />
                 </SelectPrimitive.ItemIndicator>
-                <SelectPrimitive.ItemText>
+                <SelectPrimitive.ItemText className="min-w-0 truncate">
                   {option.label}
                 </SelectPrimitive.ItemText>
               </SelectPrimitive.Item>
