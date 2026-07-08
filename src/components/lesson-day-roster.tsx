@@ -133,8 +133,8 @@ function StudentLessonGroupCard({
       {isOpen ? (
         <ol className="mt-3 divide-y divide-teal/10 border-t border-teal/10">
           {group.lessons.map((lesson) => (
-            <li className="relative py-3 pr-11" key={lesson.id}>
-              <div className="grid gap-3 sm:grid-cols-[6rem_minmax(0,1fr)] sm:items-start">
+            <li className="relative py-3" key={lesson.id}>
+              <div className="grid gap-3 pr-11 sm:grid-cols-[6rem_minmax(0,1fr)] sm:items-start">
                 <div>
                   <p className="text-sm font-bold text-sand">
                     {formatTime(lesson.scheduled_at)}
@@ -152,10 +152,10 @@ function StudentLessonGroupCard({
                     {lesson.max_mistakes} mistakes allowed
                   </p>
                 </div>
+              </div>
 
-                <div className="sm:col-span-2">
-                  <StartSessionButton lessonId={lesson.id} />
-                </div>
+              <div className="mt-3">
+                <StartSessionButton lessonId={lesson.id} />
               </div>
 
               <LessonEditPanel
